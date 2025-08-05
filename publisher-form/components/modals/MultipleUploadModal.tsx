@@ -23,6 +23,7 @@ interface MultipleUploadModalProps {
   openModal: (option: string, preserveExisting?: boolean) => void;
   setUploadType: (type: "single" | "multiple") => void;
   setUploadedCreative: (creative: null | { name: string; url?: string }) => void;
+  setHtmlCode: (code: string) => void;
 }
 
 export default function MultipleUploadModal({
@@ -44,6 +45,7 @@ export default function MultipleUploadModal({
   openModal,
   setUploadType,
   setUploadedCreative,
+  setHtmlCode,
 }: MultipleUploadModalProps) {
   return (
     <div className="w-full">
@@ -102,6 +104,11 @@ export default function MultipleUploadModal({
                       name: `Creative-${idx + 1}`,
                       url: creative.imageUrl
                     });
+                    
+                    if (creative.type === 'html' && creative.htmlContent) {
+                      setHtmlCode(creative.htmlContent);
+                    }
+                    
                     setUploadType("single");
                     openModal("Single Creative", true);
                   }}

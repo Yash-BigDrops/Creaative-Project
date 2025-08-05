@@ -377,6 +377,7 @@ export default function CreativeForm() {
                     openModal={openModal}
                     setUploadType={setUploadType}
                     setUploadedCreative={setUploadedCreative}
+                    setHtmlCode={setHtmlCode}
                   />
                 ) : (
                   <CreativeModal
