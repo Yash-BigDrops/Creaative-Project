@@ -432,6 +432,10 @@ export default function CreativeForm() {
                     handleDrop={handleDrop}
                     handleMultipleCreativesSave={handleMultipleCreativesSave}
                     onEditCreative={handleEditCreative}
+                    openModal={openModal}
+                    setUploadType={setUploadType}
+                    setUploadedCreative={setUploadedCreative}
+                    setHtmlCode={setHtmlCode}
                   />
                 ) : (
                   <CreativeModal

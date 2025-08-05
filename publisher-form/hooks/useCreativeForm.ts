@@ -464,13 +464,22 @@ export const useCreativeForm = () => {
     setModalOpen(true);
   };
 
-  const deleteCreative = async (fileName: string) => {
+  const deleteCreative = async (fileName: string, fileUrl?: string) => {
     try {
-      await fetch(`/api/creative/delete`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ fileName }),
-      });
+      // If we have a fileUrl, delete from blob storage
+      if (fileUrl) {
+        await fetch(`/api/creative/delete`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ fileUrl }),
+        });
+      }
+      
+      // Clear the uploaded creative from state
+      setUploadedCreative(null);
+      setTempFileKey(null);
+      
+      console.log("Creative deleted:", fileName);
     } catch (error) {
       console.error("Error deleting creative:", error);
       throw error;

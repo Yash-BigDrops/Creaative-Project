@@ -23,6 +23,10 @@ interface MultipleUploadModalProps {
   handleDrop: (e: React.DragEvent) => void;
   handleMultipleCreativesSave: () => void;
   onEditCreative?: (creative: MultiCreative) => void;
+  openModal: (option: string, preserveExisting?: boolean) => void;
+  setUploadType: (type: "single" | "multiple") => void;
+  setUploadedCreative: (creative: null | { name: string; url?: string }) => void;
+  setHtmlCode: (code: string) => void;
 }
 
 export default function MultipleUploadModal({
@@ -42,6 +46,10 @@ export default function MultipleUploadModal({
   handleDrop,
   handleMultipleCreativesSave,
   onEditCreative,
+  openModal,
+  setUploadType,
+  setUploadedCreative,
+  setHtmlCode,
 }: MultipleUploadModalProps) {
   return (
     <div className="w-full p-4 sm:p-6 lg:p-8">
@@ -109,30 +117,34 @@ export default function MultipleUploadModal({
               </div>
 
               <div className="p-3 border-t border-gray-100 flex gap-2">
-                <Button
+                <button
                   onClick={() => {
-                    if (onEditCreative) {
-                      onEditCreative(creative);
+                    setUploadedCreative({
+                      name: `Creative-${idx + 1}`,
+                      url: creative.imageUrl
+                    });
+                    
+                    if (creative.type === 'html' && creative.htmlContent) {
+                      setHtmlCode(creative.htmlContent);
                     }
+                    
+                    setUploadType("single");
+                    openModal("Single Creative", true);
                   }}
-                  variant="outline"
-                  size="sm"
-                  className="flex-1 border-primary text-primary hover:bg-primary/5"
+                  className="flex-1 border border-sky-400 text-sky-500 text-sm rounded-lg py-1 hover:bg-sky-50 transition-all"
                 >
-                  Edit/View
-                </Button>
-                <Button
+                  Edit
+                </button>
+                <button
                   onClick={() =>
                     setMultiCreatives(
                       multiCreatives.filter((c) => c.id !== creative.id)
                     )
                   }
-                  variant="outline"
-                  size="sm"
-                  className="flex-1 border-red-400 text-red-500 hover:bg-red-50"
+                  className="flex-1 border border-red-400 text-red-500 text-sm rounded-lg py-1 hover:bg-red-50 transition-all"
                 >
                   Remove
-                </Button>
+                </button>
               </div>
             </div>
           ))}
