@@ -20,6 +20,9 @@ interface MultipleUploadModalProps {
   handleDragLeave: (e: React.DragEvent) => void;
   handleDrop: (e: React.DragEvent) => void;
   handleMultipleCreativesSave: () => void;
+  openModal: (option: string, preserveExisting?: boolean) => void;
+  setUploadType: (type: "single" | "multiple") => void;
+  setUploadedCreative: (creative: null | { name: string; url?: string }) => void;
 }
 
 export default function MultipleUploadModal({
@@ -38,6 +41,9 @@ export default function MultipleUploadModal({
   handleDragLeave,
   handleDrop,
   handleMultipleCreativesSave,
+  openModal,
+  setUploadType,
+  setUploadedCreative,
 }: MultipleUploadModalProps) {
   return (
     <div className="w-full">
@@ -90,6 +96,19 @@ export default function MultipleUploadModal({
               </div>
 
               <div className="p-3 border-t border-gray-100 flex gap-2">
+                <button
+                  onClick={() => {
+                    setUploadedCreative({
+                      name: `Creative-${idx + 1}`,
+                      url: creative.imageUrl
+                    });
+                    setUploadType("single");
+                    openModal("Single Creative", true);
+                  }}
+                  className="flex-1 border border-sky-400 text-sky-500 text-sm rounded-lg py-1 hover:bg-sky-50 transition-all"
+                >
+                  Edit
+                </button>
                 <button
                   onClick={() =>
                     setMultiCreatives(

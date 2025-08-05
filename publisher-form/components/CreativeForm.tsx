@@ -374,6 +374,9 @@ export default function CreativeForm() {
                     handleDragLeave={handleDragLeave}
                     handleDrop={handleDrop}
                     handleMultipleCreativesSave={handleMultipleCreativesSave}
+                    openModal={openModal}
+                    setUploadType={setUploadType}
+                    setUploadedCreative={setUploadedCreative}
                   />
                 ) : (
                   <CreativeModal

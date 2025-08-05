@@ -26,7 +26,7 @@ interface CreativeDetailsFormProps {
   setUploadedFiles: (files: UploadedFile[]) => void;
   setUploadedCreative: (creative: null | { name: string; url?: string }) => void;
   setTempFileKey: (key: string | null) => void;
-  deleteCreative: (fileName: string) => void;
+  deleteCreative: (fileName: string, fileUrl?: string) => void;
 }
 
 export default function CreativeDetailsForm({
@@ -227,37 +227,36 @@ export default function CreativeDetailsForm({
                 {uploadedCreative.name}
               </p>
             </div>
-            <div className="flex gap-2 flex-shrink-0">
-              {savedMultiCreatives.length > 1 && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    openModal("Multiple Creatives", true);
-                    setUploadType("multiple");
-                    setMultiCreatives([...savedMultiCreatives]);
-                  }}
-                  className="px-3 py-1 text-sm border border-yellow-400 text-yellow-700 rounded bg-yellow-50 hover:bg-yellow-100 font-sans transition-all duration-300"
-                >
-                  Edit
-                </button>
-              )}
-
-              <button
-                type="button"
-                onClick={() => {
-                  openModal("Single Creative", true);
-                  setUploadType("single");
-                }}
-                className="px-3 py-1 text-sm border border-sky-400 text-sky-700 rounded bg-sky-50 hover:bg-sky-100 font-sans transition-all duration-300"
-              >
-                Edit
-              </button>
+                         <div className="flex gap-2 flex-shrink-0">
+               {savedMultiCreatives.length > 1 ? (
+                 <button
+                   type="button"
+                   onClick={() => {
+                     openModal("Multiple Creatives", true);
+                     setUploadType("multiple");
+                     setMultiCreatives([...savedMultiCreatives]);
+                   }}
+                   className="px-3 py-1 text-sm border border-yellow-400 text-yellow-700 rounded bg-yellow-50 hover:bg-yellow-100 font-sans transition-all duration-300"
+                 >
+                   Edit
+                 </button>
+               ) : (
+                 <button
+                   type="button"
+                   onClick={() => {
+                     openModal("Single Creative", true);
+                     setUploadType("single");
+                   }}
+                   className="px-3 py-1 text-sm border border-sky-400 text-sky-700 rounded bg-sky-50 hover:bg-sky-100 font-sans transition-all duration-300"
+                 >
+                   Edit
+                 </button>
+               )}
 
                              <button
                  type="button"
                  onClick={() => {
-                   setTempFileKey(null);
-                   deleteCreative(uploadedCreative.name);
+                   deleteCreative(uploadedCreative.name, uploadedCreative.url);
                  }}
                  className="px-3 py-1 text-sm border border-red-400 text-red-700 rounded bg-red-50 hover:bg-red-100 font-sans transition-all duration-300"
                >
