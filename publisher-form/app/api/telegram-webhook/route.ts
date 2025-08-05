@@ -45,17 +45,18 @@ export async function POST(request: NextRequest) {
       console.log('- From first_name:', msg.from?.first_name);
     }
     
-    if (update.message?.text === '/start') {
-      console.log('🎯 Processing /start command...');
+    if (update.message?.text?.startsWith('/start')) {
+      console.log('🎯 Processing /start command (with or without parameters)');
       
       const chatId = update.message.chat.id;
       const username = update.message.chat.username || update.message.from?.username;
       const firstName = update.message.chat.first_name || update.message.from?.first_name;
       
-      console.log('👤 User Info:');
-      console.log(`- Chat ID: ${chatId} (type: ${typeof chatId})`);
-      console.log(`- Username: ${username}`);
-      console.log(`- First Name: ${firstName}`);
+      console.log('👤 User details:');
+      console.log(`   Chat ID: ${chatId} (type: ${typeof chatId})`);
+      console.log(`   Username: ${username}`);
+      console.log(`   First Name: ${firstName}`);
+      console.log(`   Message text: "${update.message.text}"`);
       
       if (!username) {
         console.log('❌ No username found - asking user to set one');
@@ -84,50 +85,9 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ ok: true, message: 'No username provided' });
       }
       
-      // Database operations
-      console.log('💾 Starting database operations...');
+      console.log('💾 Attempting database insert/update...');
       
       try {
-        // Test connection
-        console.log('Testing database connection...');
-        const connectionTest = await pool.query('SELECT NOW() as current_time, version() as pg_version');
-        console.log('✅ Database connected:', {
-          time: connectionTest.rows[0].current_time,
-          version: connectionTest.rows[0].pg_version.split(' ')[0] + ' ' + connectionTest.rows[0].pg_version.split(' ')[1]
-        });
-        
-        // Check table existence
-        console.log('Checking table existence...');
-        const tableCheck = await pool.query(
-          `SELECT EXISTS (
-            SELECT FROM information_schema.tables 
-            WHERE table_schema = 'public' 
-            AND table_name = 'telegram_users'
-          )`
-        );
-        
-        const tableExists = tableCheck.rows[0]?.exists;
-        console.log('Table exists:', tableExists);
-        
-        if (!tableExists) {
-          console.log('⚠️ Table does not exist - creating...');
-          await pool.query(`
-            CREATE TABLE telegram_users (
-              id SERIAL PRIMARY KEY,
-              username VARCHAR(255) UNIQUE NOT NULL,
-              chat_id BIGINT NOT NULL,
-              first_name VARCHAR(255),
-              created_at TIMESTAMP DEFAULT NOW(),
-              updated_at TIMESTAMP DEFAULT NOW()
-            )
-          `);
-          console.log('✅ Table created successfully');
-        }
-        
-        // Insert/update user
-        console.log('Inserting/updating user...');
-        console.log('Query params:', { username, chatId, firstName });
-        
         const result = await pool.query(
           `INSERT INTO telegram_users (username, chat_id, first_name, created_at)
            VALUES ($1, $2, $3, NOW())
@@ -136,34 +96,31 @@ export async function POST(request: NextRequest) {
              chat_id = EXCLUDED.chat_id,
              first_name = EXCLUDED.first_name,
              updated_at = NOW()
-           RETURNING id, username, chat_id, first_name, created_at, updated_at`,
+           RETURNING id, username, chat_id, first_name, created_at`,
           [username, chatId, firstName]
         );
         
         console.log('✅ Database operation successful!');
-        console.log('Result:', result.rows[0]);
+        console.log('   Result:', result.rows[0]);
         
-        // Verify the insert
-        const verifyResult = await pool.query(
+        // Verify the insert with a fresh query
+        const verify = await pool.query(
           'SELECT * FROM telegram_users WHERE username = $1',
           [username]
         );
-        console.log('✅ Verification query result:', verifyResult.rows[0]);
+        console.log('✅ Verification query result:', verify.rows[0]);
         
-        // Count total users
+        // Get total user count
         const countResult = await pool.query('SELECT COUNT(*) as total FROM telegram_users');
         console.log('📊 Total users in database:', countResult.rows[0].total);
         
       } catch (dbError) {
         console.error('❌ Database error occurred:');
-        console.error('Error type:', dbError instanceof Error ? dbError.constructor.name : 'Unknown');
-        console.error('Error message:', dbError instanceof Error ? dbError.message : 'Unknown error');
-        console.error('Error code:', (dbError as { code?: string })?.code);
-        console.error('Error detail:', (dbError as { detail?: string })?.detail);
-        console.error('Error hint:', (dbError as { hint?: string })?.hint);
-        console.error('Error position:', (dbError as { position?: string })?.position);
-        console.error('Error constraint:', (dbError as { constraint?: string })?.constraint);
-        console.error('Full error:', dbError);
+        console.error('   Type:', dbError instanceof Error ? dbError.constructor.name : 'Unknown');
+        console.error('   Message:', dbError instanceof Error ? dbError.message : 'Unknown error');
+        console.error('   Code:', (dbError as { code?: string })?.code);
+        console.error('   Detail:', (dbError as { detail?: string })?.detail);
+        console.error('   Constraint:', (dbError as { constraint?: string })?.constraint);
         
         // Send error message to user
         const botToken = process.env.TELEGRAM_BOT_TOKEN;
@@ -173,7 +130,7 @@ export async function POST(request: NextRequest) {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               chat_id: chatId,
-              text: "❌ There was an error registering your account. Please contact support and mention this error occurred during registration.",
+              text: "❌ There was an error registering your account. Please contact support.",
               parse_mode: "HTML"
             })
           });
@@ -185,8 +142,7 @@ export async function POST(request: NextRequest) {
       // Send welcome message
       console.log('📤 Sending welcome message...');
       const botToken = process.env.TELEGRAM_BOT_TOKEN;
-      console.log('Bot token available:', !!botToken);
-      console.log('Bot token prefix:', botToken ? botToken.substring(0, 10) + '...' : 'none');
+      console.log('   Bot token available:', !!botToken);
       
       if (botToken) {
         try {
@@ -201,7 +157,7 @@ export async function POST(request: NextRequest) {
           });
           
           const responseData = await response.json();
-          console.log('Welcome message response:', responseData);
+          console.log('📤 Welcome message response:', responseData);
           
           if (responseData.ok) {
             console.log('✅ Welcome message sent successfully');
@@ -217,10 +173,9 @@ export async function POST(request: NextRequest) {
       }
       
     } else {
-      console.log('📝 Non-/start message received:', {
-        text: update.message?.text,
-        type: update.message ? 'message' : Object.keys(update)[1] || 'unknown'
-      });
+      console.log('📝 Non-/start message received:');
+      console.log('   Text:', update.message?.text || 'No text');
+      console.log('   Message type:', update.message ? 'message' : Object.keys(update).filter(k => k !== 'update_id')[0] || 'unknown');
     }
     
     const processingTime = Date.now() - startTime;
