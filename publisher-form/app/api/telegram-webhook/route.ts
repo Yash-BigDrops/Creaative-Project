@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { sql } from '@vercel/postgres';
+import { pool } from '@/lib/db';
 
 export async function POST(request: NextRequest) {
   try {
@@ -15,19 +15,20 @@ export async function POST(request: NextRequest) {
       
       if (username) {
         try {
-          const result = await sql`
-            INSERT INTO telegram_users (username, chat_id, first_name, created_at)
-            VALUES (${username}, ${chatId}, ${firstName}, NOW())
-            ON CONFLICT (username) 
-            DO UPDATE SET 
-              chat_id = EXCLUDED.chat_id,
-              first_name = EXCLUDED.first_name,
-              updated_at = NOW()
-            RETURNING username, chat_id
-          `;
+          const result = await pool.query(
+            `INSERT INTO telegram_users (username, chat_id, first_name, created_at)
+             VALUES ($1, $2, $3, NOW())
+             ON CONFLICT (username) 
+             DO UPDATE SET 
+               chat_id = EXCLUDED.chat_id,
+               first_name = EXCLUDED.first_name,
+               updated_at = NOW()
+             RETURNING username, chat_id`,
+            [username, chatId, firstName]
+          );
           
           console.log(`Successfully stored/updated Telegram user: @${username} -> ${chatId}`);
-          console.log('Database result:', result);
+          console.log('Database result:', result.rows[0]);
         } catch (dbError) {
           console.error('Database error storing user:', dbError);
           throw dbError;

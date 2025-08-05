@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { sql } from '@vercel/postgres';
+import { pool } from '@/lib/db';
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,13 +13,13 @@ export async function POST(request: NextRequest) {
     console.log(`Checking Telegram user: @${cleanUsername}`);
 
     // First, let's check if the table exists
-    const tableCheck = await sql`
-      SELECT EXISTS (
+    const tableCheck = await pool.query(
+      `SELECT EXISTS (
         SELECT FROM information_schema.tables 
         WHERE table_schema = 'public' 
         AND table_name = 'telegram_users'
-      );
-    `;
+      )`
+    );
     
     const tableExists = tableCheck.rows[0]?.exists;
     console.log(`telegram_users table exists: ${tableExists}`);
@@ -32,11 +32,12 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    const result = await sql`
-      SELECT chat_id, first_name 
-      FROM telegram_users 
-      WHERE username = ${cleanUsername}
-    `;
+    const result = await pool.query(
+      `SELECT chat_id, first_name 
+       FROM telegram_users 
+       WHERE username = $1`,
+      [cleanUsername]
+    );
 
     console.log(`Database query result for @${cleanUsername}:`, result.rows);
 
@@ -44,12 +45,12 @@ export async function POST(request: NextRequest) {
       console.log(`User @${cleanUsername} not found in database - needs to start bot`);
       
       // Let's also check what users are in the database
-      const allUsers = await sql`
-        SELECT username, chat_id, first_name, created_at
-        FROM telegram_users
-        ORDER BY created_at DESC
-        LIMIT 5
-      `;
+      const allUsers = await pool.query(
+        `SELECT username, chat_id, first_name, created_at
+         FROM telegram_users
+         ORDER BY created_at DESC
+         LIMIT 5`
+      );
       console.log('Recent users in database:', allUsers.rows);
       
       return NextResponse.json({ 
