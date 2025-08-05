@@ -45,71 +45,71 @@
 
 :root {
   --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --background: #ffffff;
+  --foreground: #0f172a;
+  --card: #ffffff;
+  --card-foreground: #0f172a;
+  --popover: #ffffff;
+  --popover-foreground: #0f172a;
+  --primary: #069af1;
+  --primary-foreground: #ffffff;
+  --secondary: #eff8ff;
+  --secondary-foreground: #084572;
+  --muted: #f8fafc;
+  --muted-foreground: #64748b;
+  --accent: #eff8ff;
+  --accent-foreground: #084572;
+  --destructive: #ef4444;
+  --border: #b8e3ff;
+  --input: #eff8ff;
+  --ring: #069af1;
+  --chart-1: #069af1;
+  --chart-2: #007ace;
+  --chart-3: #0061a7;
+  --chart-4: #38b6ff;
+  --chart-5: #78cdff;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #0f172a;
+  --sidebar-primary: #069af1;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #eff8ff;
+  --sidebar-accent-foreground: #084572;
+  --sidebar-border: #b8e3ff;
+  --sidebar-ring: #069af1;
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --background: #0f172a;
+  --foreground: #f8fafc;
+  --card: #1e293b;
+  --card-foreground: #f8fafc;
+  --popover: #1e293b;
+  --popover-foreground: #f8fafc;
+  --primary: #38b6ff;
+  --primary-foreground: #0f172a;
+  --secondary: #062b4b;
+  --secondary-foreground: #eff8ff;
+  --muted: #334155;
+  --muted-foreground: #94a3b8;
+  --accent: #062b4b;
+  --accent-foreground: #eff8ff;
+  --destructive: #ef4444;
+  --border: #02528a;
+  --input: #062b4b;
+  --ring: #38b6ff;
+  --chart-1: #38b6ff;
+  --chart-2: #069af1;
+  --chart-3: #007ace;
+  --chart-4: #78cdff;
+  --chart-5: #b8e3ff;
+  --sidebar: #1e293b;
+  --sidebar-foreground: #f8fafc;
+  --sidebar-primary: #38b6ff;
+  --sidebar-primary-foreground: #0f172a;
+  --sidebar-accent: #062b4b;
+  --sidebar-accent-foreground: #eff8ff;
+  --sidebar-border: #02528a;
+  --sidebar-ring: #38b6ff;
 }
 
 @layer base {
@@ -118,6 +118,117 @@
   }
   body {
     @apply bg-background text-foreground;
+    overflow-y: auto;
+    overflow-x: hidden;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+    min-height: 100vh;
+    max-height: 100vh;
+  }
+  html {
+    overflow-y: auto;
+    overflow-x: hidden;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+    height: 100%;
+  }
+  
+  /* Prevent forced scrolling */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 0, 0, 0.3) transparent;
+  }
+  
+  /* Custom scrollbar styling for webkit browsers */
+  ::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    background: rgba(6, 154, 241, 0.3);
+    border-radius: 3px;
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(6, 154, 241, 0.5);
+  }
+  
+  /* Prevent momentum scrolling on iOS */
+  body, html {
+    -webkit-overflow-scrolling: auto;
+    overscroll-behavior: none;
+  }
+  
+  /* Prevent any whitespace beyond viewport */
+  #__next, .app {
+    min-height: 100vh;
+    max-height: 100vh;
+    overflow: hidden;
+  }
+  
+  /* Allow scrolling when modals are open */
+  body.modal-open {
+    overflow-y: auto !important;
+  }
+  
+  body.modal-open html {
+    overflow-y: auto !important;
+  }
+  
+  /* Ensure modals can scroll on mobile */
+  .modal-content {
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
+    max-height: 90vh;
+  }
+  
+  /* Mobile-specific scrolling fixes */
+  @media (max-width: 768px) {
+    .modal-content {
+      max-height: 85vh;
+      overflow-y: auto !important;
+    }
+    
+    /* Ensure touch scrolling works on iOS */
+    body.modal-open {
+      position: fixed;
+      width: 100%;
+      overflow-y: auto !important;
+      -webkit-overflow-scrolling: touch;
+    }
+  }
+  
+  /* Simple Z-Index Fix */
+  .dropdown-content {
+    z-index: 99999 !important;
+  }
+  
+  .modal-backdrop {
+    z-index: 9998 !important;
+  }
+  
+  .modal-content {
+    z-index: 9999 !important;
+  }
+  
+  .fullscreen-modal {
+    z-index: 999999 !important;
+  }
+  
+  /* Ensure root element doesn't create extra space */
+  * {
+    box-sizing: border-box;
+  }
+  
+  /* Prevent body from expanding beyond viewport */
+  body {
+    position: relative;
+    margin: 0;
+    padding: 0;
   }
 }
 

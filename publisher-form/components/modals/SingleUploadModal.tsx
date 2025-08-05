@@ -7,6 +7,11 @@ import "ace-builds/src-noconflict/mode-html";
 import "ace-builds/src-noconflict/theme-github";
 import { UploadedFile } from "@/types/creative";
 import { formatFileSize } from "@/utils/fileUtils";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Maximize2, Minimize2, ChevronLeft, ChevronRight, FileText, Archive } from "lucide-react";
 
 interface SingleUploadModalProps {
   uploadedFiles: UploadedFile[];
@@ -33,6 +38,7 @@ interface SingleUploadModalProps {
   openModal: (option: string) => void;
   closeModal: () => void;
   saveCreative: () => void;
+  isFromMultiple?: boolean;
 }
 
 export default function SingleUploadModal({
@@ -60,27 +66,23 @@ export default function SingleUploadModal({
   openModal,
   closeModal,
   saveCreative,
+  isFromMultiple,
 }: SingleUploadModalProps) {
   return (
-    <div className="flex flex-col lg:flex-row gap-6">
-      <div className="lg:w-7/12 border border-gray-200 rounded-lg overflow-hidden bg-white shadow-sm flex items-center justify-center p-2 max-h-[90vh] relative">
+    <div className="flex flex-col lg:flex-row gap-4 sm:gap-6 modal-content">
+
+      <div className="lg:w-7/12 border border-gray-200 rounded-lg overflow-hidden bg-white shadow-sm flex items-center justify-center p-2 max-h-[80vh] lg:max-h-[90vh] relative" style={{ overflowY: 'auto' }}>
         {uploadedFiles[0]?.previewUrl ? (
           <div className="relative group w-full h-full">
-            <button
+            <Button
               onClick={() => setPreviewImage(uploadedFiles[0].previewUrl || "")}
+              variant="secondary"
+              size="sm"
               className="absolute top-2 right-2 bg-white rounded-full p-2 shadow-md hover:shadow-lg transition-all duration-200 z-30"
               title="Maximize"
             >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-5 w-5 text-gray-600"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4h4M20 16v4h-4M4 16v4h4M20 8V4h-4" />
-              </svg>
-            </button>
+              <Maximize2 className="h-5 w-5 text-gray-600" />
+            </Button>
             
             <div className="w-full h-full overflow-auto">
               {uploadedFiles[0].isHtml ? (
@@ -103,7 +105,7 @@ export default function SingleUploadModal({
                   {uploadedFiles[0].zipImages &&
                     uploadedFiles[0].zipImages.length > 1 && (
                       <>
-                        <button
+                        <Button
                           onClick={() => {
                             const currentIndex =
                               uploadedFiles[0].currentImageIndex || 0;
@@ -120,12 +122,14 @@ export default function SingleUploadModal({
                               },
                             ]);
                           }}
+                          variant="secondary"
+                          size="sm"
                           className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 text-white p-2 rounded-full hover:bg-opacity-70 transition-all duration-200 z-10"
                           aria-label="Previous image"
                         >
-                          ←
-                        </button>
-                        <button
+                          <ChevronLeft className="h-4 w-4" />
+                        </Button>
+                        <Button
                           onClick={() => {
                             const currentIndex =
                               uploadedFiles[0].currentImageIndex || 0;
@@ -143,11 +147,13 @@ export default function SingleUploadModal({
                               },
                             ]);
                           }}
+                          variant="secondary"
+                          size="sm"
                           className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 text-white p-2 rounded-full hover:bg-opacity-70 transition-all duration-200 z-10"
                           aria-label="Next image"
                         >
-                          →
-                        </button>
+                          <ChevronRight className="h-4 w-4" />
+                        </Button>
                         <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-50 text-white px-3 py-1 rounded-full text-sm z-10">
                           {(uploadedFiles[0].currentImageIndex || 0) + 1}{" "}
                           / {uploadedFiles[0].zipImages!.length}
@@ -159,22 +165,14 @@ export default function SingleUploadModal({
             </div>
           </div>
         ) : (
-          <div className="flex items-center justify-center h-full text-gray-500">
-            <div className="text-center">
-              <svg
-                className="w-12 h-12 mx-auto mb-3 text-gray-400"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                />
-              </svg>
-              <p className="font-sans">
+                        <div className="flex items-center justify-center h-full text-muted-foreground">
+                <div className="text-center">
+                  {uploadedFiles[0]?.file?.name?.endsWith(".zip") ? (
+                    <Archive className="w-12 h-12 mx-auto mb-3 text-muted-foreground" />
+                  ) : (
+                    <FileText className="w-12 h-12 mx-auto mb-3 text-muted-foreground" />
+                  )}
+              <p>
                 {uploadedFiles[0]?.file?.name?.endsWith(".zip")
                   ? "ZIP File Uploaded"
                   : "File Uploaded"}
@@ -184,15 +182,15 @@ export default function SingleUploadModal({
         )}
       </div>
 
-      <div className="lg:w-7/12 flex flex-col justify-between bg-white border border-gray-200 rounded-lg p-6 shadow-sm h-full">
+      <div className="lg:w-5/12 flex flex-col justify-between bg-white border border-gray-200 rounded-lg p-4 sm:p-6 shadow-sm h-full" style={{ overflowY: 'auto', maxHeight: '80vh' }}>
         <div>
-          <h3 className="text-lg font-semibold mb-3 font-sans">
+          <h3 className="text-base sm:text-lg font-semibold mb-3">
             File Details
           </h3>
-          <p className="text-sm mb-1 flex items-center">
-            <strong>Name:</strong>
+          <div className="text-sm mb-1 flex items-center">
+            <Label className="font-medium">Name:</Label>
             {isRenaming ? (
-              <input
+              <Input
                 type="text"
                 value={tempFileName}
                 onChange={(e) => setTempFileName(e.target.value)}
@@ -224,12 +222,12 @@ export default function SingleUploadModal({
                     setTempFileName("");
                   }
                 }}
-                className="ml-2 border border-gray-300 rounded px-1 py-0.5 text-sm font-sans"
+                className="ml-2 h-6 text-sm"
                 autoFocus
               />
             ) : (
               <span
-                className="ml-2 cursor-pointer text-gray-700 hover:underline font-sans"
+                className="ml-2 cursor-pointer text-gray-700 hover:underline"
                 onClick={() => {
                   setTempFileName(
                     uploadedFiles[0]?.displayName ||
@@ -244,7 +242,7 @@ export default function SingleUploadModal({
             )}
 
             {!isRenaming ? (
-              <button
+              <Button
                 type="button"
                 onClick={() => {
                   setTempFileName(
@@ -254,12 +252,14 @@ export default function SingleUploadModal({
                   );
                   setIsRenaming(true);
                 }}
-                className="ml-3 text-sky-500 hover:text-sky-600 font-sans"
+                variant="ghost"
+                size="sm"
+                className="ml-3 text-sky-500 hover:text-sky-600 h-6 px-2"
               >
                 Edit
-              </button>
+              </Button>
             ) : (
-              <button
+              <Button
                 type="button"
                 onMouseDown={(e) => {
                   e.stopPropagation();
@@ -284,12 +284,14 @@ export default function SingleUploadModal({
                   setIsRenaming(false);
                   setTempFileName("");
                 }}
-                className="ml-3 text-green-600 hover:text-green-700 font-sans font-medium relative z-30"
+                variant="ghost"
+                size="sm"
+                className="ml-3 text-green-600 hover:text-green-700 h-6 px-2 font-medium relative z-30"
               >
                 Done
-              </button>
+              </Button>
             )}
-          </p>
+          </div>
           <p className="text-sm mb-1">
             <strong>Size:</strong>{" "}
             {uploadedFiles[0]?.file?.size
@@ -326,63 +328,71 @@ export default function SingleUploadModal({
           {uploadedFiles[0]?.isHtml && (
             <div className="mb-6 relative">
               <div className="flex justify-between items-center mb-2">
-                <h3 className="text-lg font-semibold font-sans">
+                <h3 className="text-lg font-semibold">
                   HTML Code
                 </h3>
                 <div className="flex gap-2">
-                  <button
+                  <Button
                     type="button"
                     onClick={() => {
                       setIsCodeMinimized(!isCodeMinimized);
                       setIsCodeMaximized(false);
                     }}
+                    variant="ghost"
+                    size="sm"
                     className="p-1 rounded hover:bg-gray-200 transition-colors duration-200"
                     title={isCodeMinimized ? "Restore" : "Minimize"}
                   >
-                    {isCodeMinimized ? "▢" : "▁"}
-                  </button>
+                    {isCodeMinimized ? <Maximize2 className="h-4 w-4" /> : <Minimize2 className="h-4 w-4" />}
+                  </Button>
 
-                  <button
+                  <Button
                     type="button"
                     onClick={() => {
                       setIsCodeMaximized(!isCodeMaximized);
                       setIsCodeMinimized(false);
                     }}
+                    variant="ghost"
+                    size="sm"
                     className="p-1 rounded hover:bg-gray-200 transition-colors duration-200"
                     title={isCodeMaximized ? "Exit Fullscreen" : "Maximize"}
                   >
-                    ⤡
-                  </button>
+                    <Maximize2 className="h-4 w-4" />
+                  </Button>
                 </div>
               </div>
 
               {!isCodeMinimized &&
                 (isCodeMaximized ? (
-                  <div className="fixed inset-0 z-[9999] bg-black bg-opacity-60 flex flex-col">
+                  <div className="fixed inset-0 fullscreen-modal bg-black bg-opacity-60 flex flex-col">
                     <div className="flex justify-between items-center bg-white px-4 py-2 border-b border-gray-200 shadow-md">
-                      <h3 className="text-lg font-semibold font-sans">
+                      <h3 className="text-lg font-semibold">
                         HTML Code (Fullscreen)
                       </h3>
                       <div className="flex gap-2">
-                        <button
+                        <Button
                           type="button"
                           onClick={() => {
                             setIsCodeMaximized(false);
                             setIsCodeMinimized(true);
                           }}
-                          className="p-2 rounded bg-gray-100 hover:bg-gray-200 transition-colors"
+                          variant="outline"
+                          size="sm"
+                          className="p-2 rounded"
                           title="Minimize to small view"
                         >
-                          ▁
-                        </button>
-                        <button
+                          <Minimize2 className="h-4 w-4" />
+                        </Button>
+                        <Button
                           type="button"
                           onClick={() => setIsCodeMaximized(false)}
-                          className="p-2 rounded bg-gray-100 hover:bg-gray-200 transition-colors"
+                          variant="outline"
+                          size="sm"
+                          className="p-2 rounded"
                           title="Exit Fullscreen"
                         >
-                          ⤢
-                        </button>
+                          <Maximize2 className="h-4 w-4" />
+                        </Button>
                       </div>
                     </div>
 
@@ -470,39 +480,41 @@ export default function SingleUploadModal({
             </div>
           )}
 
-          <h3 className="text-lg font-semibold mb-3 font-sans">
+          <h3 className="text-lg font-semibold mb-3">
             Creative Specific Details
           </h3>
           
-          <button
+          <Button
             type="button"
             onClick={() => openModal("From & Subject Lines")}
-            className="flex items-center justify-center gap-2 w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg 
-                       hover:border-sky-400 hover:bg-sky-50 transition-all duration-300 font-sans text-sm sm:text-base text-gray-800 mb-6"
+            variant="outline"
+            className="flex items-center justify-center gap-2 w-full mb-6"
           >
-            <svg className="h-4 w-4 sm:h-5 sm:w-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
-            </svg>
+            <Archive className="h-4 w-4 text-gray-600" />
             <span>From & Subject Lines</span>
-          </button>
+          </Button>
 
-          <h3 className="text-lg font-semibold mb-3 font-sans">
-            Any Notes For This Creative
-          </h3>
-          <textarea
-            placeholder="Type your notes here..."
-            value={creativeNotes}
-            onChange={(e) => setCreativeNotes(e.target.value)}
-            className="border border-gray-300 rounded-lg p-3 min-h-[100px] w-full font-sans text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-sky-400 transition-all duration-300 hover:border-sky-300 focus:border-sky-400 resize-none mb-6"
-          />
+          <div className="space-y-2">
+            <Label htmlFor="creativeNotes" className="text-lg font-semibold">
+              Any Notes For This Creative
+            </Label>
+            <Textarea
+              id="creativeNotes"
+              placeholder="Type your notes here..."
+              value={creativeNotes}
+              onChange={(e) => setCreativeNotes(e.target.value)}
+              className="min-h-[100px] resize-none transition-all duration-300"
+            />
+          </div>
         </div>
 
-        <button
+        <Button
           onClick={saveCreative}
-          className="mt-6 w-full bg-sky-400 hover:bg-sky-500 active:bg-sky-600 text-white font-sans font-medium py-3 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 active:scale-95"
+          className="mt-6 w-full py-3 transition-all duration-300 active:scale-95"
+          size="lg"
         >
           Save & Continue
-        </button>
+        </Button>
       </div>
     </div>
   );

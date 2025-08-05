@@ -4,6 +4,9 @@ import React from "react";
 import { CreativeFormData, TelegramCheckStatus } from "@/types/creative";
 import { CheckCircle, AlertTriangle } from "lucide-react";
 import { TELEGRAM_BOT_URL } from "@/constants/creative";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 
 interface ContactDetailsFormProps {
   formData: CreativeFormData;
@@ -22,50 +25,60 @@ export default function ContactDetailsForm({
 }: ContactDetailsFormProps) {
   return (
     <>
-      <div className="animate-fade-in">
-        <input
+      <div className="space-y-2 animate-fade-in">
+        <Label htmlFor="contactEmail" className="text-sm font-medium text-foreground">
+          Email ID
+        </Label>
+        <Input
+          id="contactEmail"
           type="email"
-          placeholder="Email ID"
+          placeholder="Enter your email address"
           value={formData.contactEmail}
           onChange={(e) => handleInputChange("contactEmail", e.target.value)}
-          className={`w-full h-14 border rounded-lg px-4 font-sans text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-sky-400 transition-all duration-300 hover:border-sky-300 focus:border-sky-400 ${
-            errors.contactEmail ? "border-red-500" : "border-gray-300"
+          className={`h-14 w-full transition-all duration-300 ${
+            errors.contactEmail ? "border-destructive focus:ring-destructive" : ""
           }`}
         />
         {errors.contactEmail && (
-          <p className="text-red-500 text-sm mt-1 animate-fade-in">
+          <p className="text-destructive text-sm animate-fade-in">
             {errors.contactEmail}
           </p>
         )}
       </div>
 
-      <div className="animate-fade-in-delay">
+      <div className="space-y-2 animate-fade-in-delay">
+        <Label htmlFor="telegramId" className="text-sm font-medium text-foreground">
+          Telegram Username (Optional)
+        </Label>
         <div className="relative">
-          <input
+          <Input
+            id="telegramId"
             type="text"
-            placeholder="Telegram Username (Optional)"
+            placeholder="Enter your Telegram username"
             value={formData.telegramId}
             onChange={(e) => handleInputChange("telegramId", e.target.value)}
             onBlur={handleTelegramBlur}
-            className="w-full h-14 border border-gray-300 rounded-lg px-4 pr-20 font-sans text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-sky-400 transition-all duration-300 hover:border-sky-300 focus:border-sky-400"
+            className="h-14 w-full pr-20 transition-all duration-300"
           />
           
-          <button
+          <Button
             type="button"
             onClick={handleTelegramBlur}
             disabled={telegramCheckStatus === "checking"}
-            className="absolute right-2 top-1/2 transform -translate-y-1/2 px-4 py-2 bg-sky-500 text-white rounded-md hover:bg-sky-600 disabled:bg-gray-400 disabled:cursor-not-allowed transition-all text-sm font-medium"
+            className="absolute right-2 top-1/2 transform -translate-y-1/2 h-10 px-4 text-sm font-medium"
+            variant="default"
+            size="sm"
           >
             {telegramCheckStatus === "checking" ? "Checking..." : "Check"}
-          </button>
+          </Button>
         </div>
 
         {telegramCheckStatus === "checking" && (
-          <p className="text-gray-500 text-sm mt-1">Checking Telegram connection...</p>
+          <p className="text-gray-500 text-sm">Checking Telegram connection...</p>
         )}
 
         {telegramCheckStatus === "unchecked" && formData.telegramId.trim() && (
-          <p className="text-gray-500 text-sm mt-1">Click &quot;Check&quot; to verify your Telegram connection</p>
+          <p className="text-gray-500 text-sm">Click &quot;Check&quot; to verify your Telegram connection</p>
         )}
 
         {telegramCheckStatus === "not_started" && (
@@ -82,21 +95,27 @@ export default function ContactDetailsForm({
                 <li>Come back and click &quot;Check&quot; again</li>
               </ol>
               <div className="flex gap-2 mt-3">
-                <a
-                  href={TELEGRAM_BOT_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-4 py-2 bg-sky-500 text-white rounded-lg hover:bg-sky-600 transition-colors text-sm font-medium"
+                <Button
+                  asChild
+                  variant="default"
+                  size="sm"
                 >
-                  Start Bot
-                </a>
-                <button
+                  <a
+                    href={TELEGRAM_BOT_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Start Bot
+                  </a>
+                </Button>
+                <Button
                   type="button"
                   onClick={handleTelegramBlur}
-                  className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors text-sm font-medium"
+                  variant="secondary"
+                  size="sm"
                 >
                   Check Again
-                </button>
+                </Button>
               </div>
             </div>
           </div>

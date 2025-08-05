@@ -65,6 +65,7 @@ export const useCreativeForm = () => {
   const [aiLoading, setAiLoading] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [telegramCheckStatus, setTelegramCheckStatus] = useState<TelegramCheckStatus>("unchecked");
+  const [fromSubjectNavigationContext, setFromSubjectNavigationContext] = useState<"direct" | "single" | "multiple" | null>(null);
 
   // Fetch offers on component mount
   useEffect(() => {
@@ -265,6 +266,11 @@ export const useCreativeForm = () => {
           }
 
           console.log("ZIP processing results:", creativesFound);
+          console.log("Number of creatives found:", creativesFound.length);
+          console.log("Creatives breakdown:", {
+            html: creativesFound.filter(c => c.type === "html").length,
+            image: creativesFound.filter(c => c.type === "image").length
+          });
 
           const originalUrl = await uploadPromise;
 
@@ -272,12 +278,13 @@ export const useCreativeForm = () => {
             const creatives = creativesFound.map((c, idx) => ({
               id: idx,
               type: c.type,
-              imageUrl: c.url,
+              imageUrl: c.url, // Use the URL directly from extracted creative
               fromLine: "",
               subjectLine: "",
               notes: "",
               htmlContent: c.htmlContent || "",
             }));
+            console.log("Created MultiCreatives:", creatives.length);
             setMultiCreatives(creatives);
             setOriginalZipFileName(file.name);
             setTempFileKey(originalUrl);
@@ -294,12 +301,12 @@ export const useCreativeForm = () => {
                 containsCSS: htmlContent.includes("<style"),
               });
 
-              const blob = new Blob([htmlContent], { type: "text/html" });
-              const htmlBlobUrl = URL.createObjectURL(blob);
-              console.log("Created HTML blob URL:", htmlBlobUrl);
+              // Use the URL directly from the extracted creative instead of creating a new blob
+              const htmlUrl = firstHtml.url;
+              console.log("Using HTML URL directly:", htmlUrl);
 
               setHtmlCode(htmlContent);
-              setUploadedFiles([{ file, previewUrl: htmlBlobUrl, originalUrl, isHtml: true }]);
+              setUploadedFiles([{ file, previewUrl: htmlUrl, originalUrl, isHtml: true }]);
             } else {
               const firstImg = creativesFound.find((c) => c.type === "image");
               if (firstImg) {
@@ -427,6 +434,15 @@ export const useCreativeForm = () => {
     if (option === "From & Subject Lines") {
       setFromLine(formData.fromLine || "");
       setSubjectLines(formData.subjectLines || "");
+      
+      // Track navigation context for back button logic
+      if (uploadType === "single" && uploadedFiles.length > 0) {
+        setFromSubjectNavigationContext("single");
+      } else if (uploadType === "multiple" && multiCreatives.length > 0) {
+        setFromSubjectNavigationContext("multiple");
+      } else {
+        setFromSubjectNavigationContext("direct");
+      }
     }
 
     if (!preserveExisting && option !== "From & Subject Lines") {
@@ -497,6 +513,7 @@ export const useCreativeForm = () => {
     setSelectedOption("");
     setUploadType(null);
     setIsDragOver(false);
+    setFromSubjectNavigationContext(null);
 
     if (selectedOption !== "From & Subject Lines") {
       setFromLine("");
@@ -665,6 +682,90 @@ export const useCreativeForm = () => {
     }
   };
 
+  const handleEditCreative = (creative: MultiCreative) => {
+    // Find the index of the creative in the multiCreatives array
+    const creativeIndex = multiCreatives.findIndex(c => c.id === creative.id);
+    if (creativeIndex !== -1) {
+      setEditingCreativeIndex(creativeIndex);
+      
+      // Create an UploadedFile object from the MultiCreative
+      const uploadedFile: UploadedFile = {
+        file: new File([], `creative-${creativeIndex + 1}`, { type: creative.type === "html" ? "text/html" : "image/png" }), // Create a dummy file
+        previewUrl: creative.imageUrl,
+        displayName: `creative-${creativeIndex + 1}`,
+        isHtml: creative.type === "html"
+      };
+
+      // Set the uploaded files to show the selected creative
+      setUploadedFiles([uploadedFile]);
+      
+      // If it's an HTML creative, set the HTML code
+      if (creative.type === "html" && creative.htmlContent) {
+        setHtmlCode(creative.htmlContent);
+      } else if (creative.type === "html") {
+        // If we don't have the HTML code, try to fetch it from the URL
+        fetch(creative.imageUrl)
+          .then(response => response.text())
+          .then(html => {
+            setHtmlCode(html);
+          })
+          .catch(error => {
+            console.error('Error fetching HTML code:', error);
+            setHtmlCode('<!-- HTML content could not be loaded -->');
+          });
+      }
+
+      // Set creative notes if available
+      if (creative.notes) {
+        setCreativeNotes(creative.notes);
+      }
+
+      // Set from line and subject lines if available
+      if (creative.fromLine) {
+        setModalFromLine(creative.fromLine);
+      }
+      if (creative.subjectLine) {
+        setModalSubjectLines(creative.subjectLine);
+      }
+
+      // Open the single upload modal
+      setUploadType("single");
+      setModalOpen(true);
+      
+      console.log('Editing creative:', creative);
+    }
+  };
+
+  const handleBackToMultiple = () => {
+    // Go back to multiple upload view
+    setUploadType("multiple");
+    setEditingCreativeIndex(null);
+    setUploadedFiles([]);
+    setHtmlCode("");
+    setCreativeNotes("");
+    setModalFromLine("");
+    setModalSubjectLines("");
+    setPreviewImage(null);
+    setPreviewedCreative(null);
+  };
+
+  const handleBackToSingle = () => {
+    // Handle back navigation based on context
+    if (fromSubjectNavigationContext === "single") {
+      // Go back to single creative details page
+      setSelectedOption("");
+    } else if (fromSubjectNavigationContext === "multiple") {
+      // Go back to single creative details page (from multiple edit)
+      setSelectedOption("");
+    } else {
+      // Direct access - close modal
+      setModalOpen(false);
+      setSelectedOption("");
+      setUploadType(null);
+    }
+    setFromSubjectNavigationContext(null);
+  };
+
   return {
     // State
     step,
@@ -706,6 +807,7 @@ export const useCreativeForm = () => {
     aiLoading,
     isUploading,
     telegramCheckStatus,
+    fromSubjectNavigationContext,
 
     // Setters
     setStep,
@@ -765,6 +867,9 @@ export const useCreativeForm = () => {
     handleDrop,
     handleMultipleCreativesSave,
     saveCreative,
+    handleEditCreative,
+    handleBackToMultiple,
+    handleBackToSingle,
     formatFileSize,
   };
 }; 

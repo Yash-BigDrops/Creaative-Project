@@ -12,6 +12,9 @@ import MultipleUploadModal from "@/components/modals/MultipleUploadModal";
 import CreativeModal from "@/components/modals/CreativeModal";
 import FromSubjectModal from "@/components/modals/FromSubjectModal";
 import { STEP_LABELS } from "@/constants/creative";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { X } from "lucide-react";
 
 export default function CreativeForm() {
   const {
@@ -54,6 +57,7 @@ export default function CreativeForm() {
     aiLoading,
     isUploading,
     telegramCheckStatus,
+    fromSubjectNavigationContext,
     handleInputChange,
     handleTelegramBlur,
     enhanceWithClaude,
@@ -95,6 +99,9 @@ export default function CreativeForm() {
     setUploadedFiles,
     setUploadedCreative,
     openModal,
+    handleEditCreative,
+    handleBackToMultiple,
+    handleBackToSingle,
     closeModal,
     deleteCreative,
     handleDragOver,
@@ -117,9 +124,10 @@ export default function CreativeForm() {
     <div
       className="min-h-screen flex flex-col items-center justify-center px-4 py-6 sm:py-12 animate-fade-in"
       style={{
-        backgroundImage: "url('/images/Step 1.png')",
-        backgroundRepeat: "repeat",
-        backgroundSize: "auto",
+        backgroundImage: "url('/images/Background.png')",
+        backgroundRepeat: "no-repeat",
+        backgroundPosition: "center",
+        backgroundSize: "cover",
       }}
     >
       <div className="mb-6 sm:mb-8 animate-slide-down">
@@ -132,143 +140,149 @@ export default function CreativeForm() {
         />
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-200 shadow-lg w-full max-w-3xl p-4 sm:p-8 animate-slide-up hover:shadow-xl transition-all duration-500">
-        <h1 className="font-sans text-2xl sm:text-4xl font-bold text-gray-900 mb-3 sm:mb-4 leading-snug animate-fade-in-delay">
-          Submit Your Creatives For Approval
-        </h1>
+      <Card className="w-full max-w-3xl animate-slide-up hover:shadow-xl transition-all duration-500">
+        <CardHeader>
+          <CardTitle className="text-2xl sm:text-4xl font-bold text-gray-900 leading-snug animate-fade-in-delay">
+            Submit Your Creatives For Approval
+          </CardTitle>
+          <p className="text-base sm:text-lg text-gray-600 leading-relaxed animate-fade-in-delay-2">
+            Upload your static images or HTML creatives with offer details to
+            begin the approval process. Our team will review and notify you
+            shortly.
+          </p>
+          <p className="text-base sm:text-lg font-semibold text-primary animate-fade-in-delay-3">
+            Step {step} of 3: {STEP_LABELS[step as keyof typeof STEP_LABELS]}
+          </p>
+          <div
+            className="w-full border-b border-primary/20"
+            style={{
+              marginTop: "24px",
+            }}
+          ></div>
+        </CardHeader>
 
-        <p className="font-sans text-base sm:text-lg text-gray-600 mb-5 sm:mb-6 leading-relaxed animate-fade-in-delay-2">
-          Upload your static images or HTML creatives with offer details to
-          begin the approval process. Our team will review and notify you
-          shortly.
-        </p>
-
-        <p className="font-sans text-base sm:text-lg font-semibold text-sky-500 mb-4 sm:mb-6 animate-fade-in-delay-3">
-          Step {step} of 3: {STEP_LABELS[step as keyof typeof STEP_LABELS]}
-        </p>
-
-        <div
-          className="w-full mb-6 animate-fade-in-delay-3"
-          style={{
-            borderBottom: "1px solid #BFE5FA",
-            marginTop: "24px",
-          }}
-        ></div>
-
-        <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
-          {step === 1 && (
-            <PersonalDetailsForm
-              formData={formData}
-              errors={errors}
-              handleInputChange={handleInputChange}
-            />
-          )}
-
-          {step === 2 && (
-            <ContactDetailsForm
-              formData={formData}
-              errors={errors}
-              telegramCheckStatus={telegramCheckStatus}
-              handleInputChange={handleInputChange}
-              handleTelegramBlur={handleTelegramBlur}
-            />
-          )}
-
-          {step === 3 && (
-            <CreativeDetailsForm
-              formData={formData}
-              errors={errors}
-              offers={offers}
-              offerSearchTerm={offerSearchTerm}
-              isOfferDropdownOpen={isOfferDropdownOpen}
-              isCreativeTypeDropdownOpen={isCreativeTypeDropdownOpen}
-              priority={priority}
-              uploadedCreative={uploadedCreative}
-              savedMultiCreatives={savedMultiCreatives}
-              handleInputChange={handleInputChange}
-              setOfferSearchTerm={setOfferSearchTerm}
-              setIsOfferDropdownOpen={setIsOfferDropdownOpen}
-              setIsCreativeTypeDropdownOpen={setIsCreativeTypeDropdownOpen}
-              setPriority={setPriority}
-              openModal={openModal}
-              setUploadType={setUploadType}
-              setMultiCreatives={setMultiCreatives}
-              setUploadedFiles={setUploadedFiles}
-              setUploadedCreative={setUploadedCreative}
-              setTempFileKey={setTempFileKey}
-              deleteCreative={deleteCreative}
-            />
-          )}
-
-          <div className="flex flex-col sm:flex-row justify-between pt-4 gap-4 sm:gap-0 animate-fade-in-delay-4">
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
             {step === 1 && (
-              <button
-                type="button"
-                onClick={handleNextStep}
-                className="w-full h-14 bg-sky-400 hover:bg-sky-500 active:bg-sky-600 text-white font-sans font-semibold rounded-lg shadow-md hover:shadow-lg hover:shadow-sky-200 transition-all duration-300 active:scale-95"
-              >
-                Save & Add Contact Details
-              </button>
+              <PersonalDetailsForm
+                formData={formData}
+                errors={errors}
+                handleInputChange={handleInputChange}
+              />
             )}
+
             {step === 2 && (
-              <>
-                <button
-                  type="button"
-                  onClick={handlePrevStep}
-                  className="w-full sm:w-auto h-14 px-6 border border-sky-400 text-sky-500 font-sans font-semibold rounded-lg hover:bg-sky-50 transition-all duration-300 active:scale-95"
-                >
-                  Edit Personal Details
-                </button>
-                <button
+              <ContactDetailsForm
+                formData={formData}
+                errors={errors}
+                telegramCheckStatus={telegramCheckStatus}
+                handleInputChange={handleInputChange}
+                handleTelegramBlur={handleTelegramBlur}
+              />
+            )}
+
+            {step === 3 && (
+              <CreativeDetailsForm
+                formData={formData}
+                errors={errors}
+                offers={offers}
+                offerSearchTerm={offerSearchTerm}
+                isOfferDropdownOpen={isOfferDropdownOpen}
+                isCreativeTypeDropdownOpen={isCreativeTypeDropdownOpen}
+                priority={priority}
+                uploadedCreative={uploadedCreative}
+                savedMultiCreatives={savedMultiCreatives}
+                handleInputChange={handleInputChange}
+                setOfferSearchTerm={setOfferSearchTerm}
+                setIsOfferDropdownOpen={setIsOfferDropdownOpen}
+                setIsCreativeTypeDropdownOpen={setIsCreativeTypeDropdownOpen}
+                setPriority={setPriority}
+                openModal={openModal}
+                setUploadType={setUploadType}
+                setMultiCreatives={setMultiCreatives}
+                setUploadedFiles={setUploadedFiles}
+                setUploadedCreative={setUploadedCreative}
+                setTempFileKey={setTempFileKey}
+                deleteCreative={deleteCreative}
+              />
+            )}
+
+            <div className="flex flex-col pt-4 gap-4 animate-fade-in-delay-4">
+              {step === 1 && (
+                <Button
                   type="button"
                   onClick={handleNextStep}
-                  className="w-full sm:w-auto h-14 px-6 bg-sky-400 hover:bg-sky-500 active:bg-sky-600 text-white font-sans font-semibold rounded-lg shadow-md hover:shadow-lg hover:shadow-sky-200 transition-all duration-300 active:scale-95"
+                  className="w-full h-14"
+                  size="lg"
                 >
                   Save & Add Contact Details
-                </button>
-              </>
-            )}
-            {step === 3 && (
-              <>
-                <button
-                  type="button"
-                  onClick={handlePrevStep}
-                  className="w-full sm:w-auto h-12 sm:h-14 px-4 sm:px-6 border border-sky-400 rounded-lg font-sans text-sm sm:text-base font-medium text-sky-500 bg-sky-50 hover:bg-sky-100 transition-all duration-300 hover:border-sky-500 hover:shadow-md active:scale-95"
-                >
-                  Previous
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="w-full sm:w-auto h-12 sm:h-14 px-4 sm:px-6 bg-sky-400 hover:bg-sky-500 active:bg-sky-600 text-white font-sans text-sm sm:text-base font-semibold rounded-lg shadow-md hover:shadow-lg hover:shadow-sky-200 transition-all duration-300 disabled:opacity-50 active:scale-95"
-                >
-                  {isSubmitting ? (
-                    <div className="flex items-center justify-center space-x-2">
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                      <span className="text-sm sm:text-base">
-                        Submitting...
-                      </span>
-                    </div>
-                  ) : (
-                    "Submit Creative"
-                  )}
-                </button>
-              </>
-            )}
-          </div>
-        </form>
-      </div>
+                </Button>
+              )}
+              {step === 2 && (
+                <>
+                  <Button
+                    type="button"
+                    onClick={handlePrevStep}
+                    variant="outline"
+                    className="w-full h-14"
+                    size="lg"
+                  >
+                    Edit Personal Details
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={handleNextStep}
+                    className="w-full h-14"
+                    size="lg"
+                  >
+                    Save & Add Contact Details
+                  </Button>
+                </>
+              )}
+              {step === 3 && (
+                <>
+                  <Button
+                    type="button"
+                    onClick={handlePrevStep}
+                    variant="outline"
+                    className="w-full h-14"
+                    size="lg"
+                  >
+                    Edit Contact Details
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="w-full h-14"
+                    size="lg"
+                  >
+                    {isSubmitting ? (
+                      <div className="flex items-center justify-center space-x-2">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                        <span>Submitting...</span>
+                      </div>
+                    ) : (
+                      "Submit Creative"
+                    )}
+                  </Button>
+                </>
+              )}
+            </div>
+          </form>
+        </CardContent>
+      </Card>
 
       {previewImage && (
         <div
-          className="fixed inset-0 z-[9999] bg-black bg-opacity-80 flex items-center justify-center p-4 animate-fade-in"
+          className="fixed inset-0 fullscreen-modal bg-black bg-opacity-80 flex items-center justify-center p-4 animate-fade-in"
           onClick={() => {
             setPreviewImage(null);
             setPreviewedCreative(null);
           }}
+          style={{ overflowY: 'auto' }}
         >
           <div
-            className="relative max-w-[90vw] max-h-[90vh] animate-scale-in"
+            className="relative max-w-[90vw] max-h-[90vh] animate-scale-in fullscreen-modal"
             onClick={(e) => e.stopPropagation()}
           >
             {previewedCreative?.type === "html" || uploadedFiles[0]?.isHtml ? (
@@ -288,45 +302,87 @@ export default function CreativeForm() {
               />
             )}
 
-            <button
+            <Button
               onClick={() => {
                 setPreviewImage(null);
                 setPreviewedCreative(null);
               }}
-              className="absolute -top-3 -right-3 text-white bg-red-600 hover:bg-red-700 rounded-full p-2 shadow-lg transition-all duration-300 hover:scale-110 active:scale-95"
+              variant="destructive"
+              size="sm"
+              className="absolute -top-3 -right-3 rounded-full p-2 shadow-lg transition-all duration-300 hover:scale-110 active:scale-95"
               aria-label="Close preview"
             >
-              ✖
-            </button>
+              <X className="h-4 w-4" />
+            </Button>
           </div>
         </div>
       )}
 
       {modalOpen && (
         <div
-          className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 animate-fade-in"
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center modal-backdrop animate-fade-in p-2 sm:p-4"
           onClick={closeModal}
+          style={{ overflowY: 'auto' }}
         >
           <div
-            className="bg-white rounded-lg shadow-lg p-6 w-full max-w-6xl h-auto lg:h-[90vh] overflow-y-auto relative animate-scale-in"
+            className="bg-white rounded-2xl shadow-2xl border border-gray-100 w-full max-w-[95vw] lg:max-w-[90vw] xl:max-w-[85vw] h-auto lg:h-[95vh] overflow-hidden relative animate-scale-in modal-content"
             onClick={(e) => e.stopPropagation()}
+            style={{ maxHeight: '95vh' }}
           >
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold font-sans">
-                {uploadType === "single" && "Upload Single Creative"}
-                {uploadType === "multiple" && "Upload Multiple Creatives"}
-                {!uploadType && selectedOption}
-              </h2>
-              <div className="flex gap-2">
-                <button
-                  onClick={closeModal}
-                  className="p-1 rounded hover:bg-gray-200 transition-colors duration-200"
-                  title="Close"
-                >
-                  ✖
-                </button>
+            {/* Header */}
+            <div className="flex justify-between items-center px-4 sm:px-6 lg:px-8 py-4 sm:py-6 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
+              <div className="flex items-center gap-3">
+                {/* Back button only when editing from multiple uploads */}
+                {editingCreativeIndex !== null && (
+                  <Button
+                    onClick={() => {
+                      // Go back to multiple uploads
+                      setUploadType("multiple");
+                      setEditingCreativeIndex(null);
+                      setUploadedFiles([]);
+                      setHtmlCode("");
+                      setCreativeNotes("");
+                      setModalFromLine("");
+                      setModalSubjectLines("");
+                      setPreviewImage(null);
+                      setPreviewedCreative(null);
+                    }}
+                    variant="ghost"
+                    size="sm"
+                    className="p-2 rounded-full hover:bg-gray-100 transition-all duration-200 group"
+                    title="Back to Multiple Creatives"
+                  >
+                    <svg className="h-5 w-5 text-gray-500 group-hover:text-gray-700 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                    </svg>
+                  </Button>
+                )}
+                <div>
+                  <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">
+                    {uploadType === "single" && "Upload Single Creative"}
+                    {uploadType === "multiple" && "Upload Multiple Creatives"}
+                    {!uploadType && selectedOption}
+                  </h2>
+                  <p className="text-xs sm:text-sm text-gray-500 mt-1">
+                    {uploadType === "single" && "Upload and configure a single creative file"}
+                    {uploadType === "multiple" && "Upload and manage multiple creative files"}
+                    {!uploadType && "Configure your creative settings"}
+                  </p>
+                </div>
               </div>
+              <Button
+                onClick={closeModal}
+                variant="ghost"
+                size="sm"
+                className="p-2 rounded-full hover:bg-gray-100 transition-all duration-200 group"
+                title="Close"
+              >
+                <X className="h-5 w-5 text-gray-500 group-hover:text-gray-700 transition-colors" />
+              </Button>
             </div>
+
+            {/* Content */}
+            <div className="overflow-y-auto p-3 sm:p-4 lg:p-6" style={{ maxHeight: 'calc(95vh - 100px)' }}>
 
             {(uploadType === "single" || uploadType === "multiple") && (
               <>
@@ -356,6 +412,7 @@ export default function CreativeForm() {
                     openModal={openModal}
                     closeModal={closeModal}
                     saveCreative={saveCreative}
+                    isFromMultiple={editingCreativeIndex !== null}
                   />
                 ) : uploadType === "multiple" && multiCreatives.length > 0 ? (
                   <MultipleUploadModal
@@ -374,6 +431,7 @@ export default function CreativeForm() {
                     handleDragLeave={handleDragLeave}
                     handleDrop={handleDrop}
                     handleMultipleCreativesSave={handleMultipleCreativesSave}
+                    onEditCreative={handleEditCreative}
                   />
                 ) : (
                   <CreativeModal
@@ -398,8 +456,11 @@ export default function CreativeForm() {
                 setSubjectLines={setSubjectLines}
                 enhanceWithClaude={enhanceWithClaude}
                 closeModal={closeModal}
+                onBackToSingle={handleBackToSingle}
+                navigationContext={fromSubjectNavigationContext}
               />
             )}
+            </div>
           </div>
         </div>
       )}
