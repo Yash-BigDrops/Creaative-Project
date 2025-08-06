@@ -54,10 +54,9 @@ export async function POST(request: Request) {
           cache: 'no-store',
         });
         if (response.ok) {
-          await response.json(); // Fetch but don't store since we don't use it
+          await response.json();
         }
       } catch (e) {
-        console.error("Failed to fetch offer details for email, but proceeding anyway.", e);
       }
     }
 
@@ -78,12 +77,9 @@ export async function POST(request: Request) {
         });
         
         if (emailResult.success) {
-          console.log('Confirmation email sent successfully.');
         } else {
-          console.error('Failed to send email:', emailResult.error);
         }
       } catch (exception) {
-        console.error('An unexpected exception occurred while sending email:', exception);
       }
     }
 
@@ -100,7 +96,6 @@ export async function POST(request: Request) {
         `;
         
         if (result.rows.length === 0) {
-          console.log(`User @${username} not found in database - skipping Telegram notification`);
         } else {
           const user = result.rows[0];
           const chatId = user.chat_id;
@@ -134,29 +129,19 @@ You can use this link to track the status of your submission.
           const responseData = await response.json();
           
           if (response.ok && responseData.ok) {
-            console.log("Telegram notification sent to user's personal chat.");
           } else {
             if (responseData.error_code === 400 && responseData.description.includes("chat not found")) {
-              console.error("Telegram notification failed: User needs to start a conversation with the bot first. Username:", username);
-            } else {
-              console.error("Failed to send Telegram notification to user:", responseData);
             }
           }
         }
       } catch (exception) {
-        console.error(
-          "Failed to send Telegram notification to user:",
-          exception
-        );
       }
     } else if (telegramBotToken) {
-      console.log("Telegram notification skipped - no valid Telegram username provided by user.");
     }
 
     return NextResponse.json({ success: true, url: primaryUrl, trackingLink: trackingLink });
 
   } catch (error) {
-    console.error('Error during submission:', error);
     return NextResponse.json({ error: 'Server error during submission.' }, { status: 500 });
   }
 }

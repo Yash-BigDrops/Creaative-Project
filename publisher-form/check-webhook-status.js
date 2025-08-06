@@ -38,43 +38,22 @@ function getWebhookInfo() {
 
 async function checkWebhookStatus() {
   try {
-    console.log('🔍 Checking current webhook status...\n');
-    
     const webhookInfo = await getWebhookInfo();
     
     if (webhookInfo.ok) {
       const info = webhookInfo.result;
       
-      console.log('📋 Webhook Information:');
-      console.log('================================');
-      console.log('URL:', info.url || '❌ No webhook URL set');
-      console.log('Has custom certificate:', info.has_custom_certificate || false);
-      console.log('Pending update count:', info.pending_update_count || 0);
-      console.log('Last error date:', info.last_error_date ? new Date(info.last_error_date * 1000) : 'None');
-      console.log('Last error message:', info.last_error_message || 'None');
-      console.log('Max connections:', info.max_connections || 'Default');
-      console.log('Allowed updates:', info.allowed_updates || 'All');
+      
       
       if (!info.url) {
-        console.log('\n❌ PROBLEM: No webhook URL is configured!');
-        console.log('You need to set up your webhook first.');
-        console.log('Run: node setup-telegram-webhook.js https://yourdomain.com/api/telegram-webhook');
       } else if (info.last_error_message) {
-        console.log('\n❌ PROBLEM: Webhook has errors!');
-        console.log('Last error:', info.last_error_message);
-        console.log('This means Telegram cannot reach your webhook URL.');
       } else if (info.pending_update_count > 0) {
-        console.log('\n⚠️ WARNING: There are pending updates!');
-        console.log('This might indicate the webhook is not processing updates properly.');
       } else {
-        console.log('\n✅ Webhook appears to be configured correctly.');
       }
     } else {
-      console.log('❌ Failed to get webhook info:', webhookInfo);
     }
     
   } catch (error) {
-    console.error('❌ Error checking webhook:', error);
   }
 }
 

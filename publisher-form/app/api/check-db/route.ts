@@ -1,9 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { pool } from '@/lib/db';
+import { Pool } from 'pg';
+
+const getPool = () => {
+  if (!process.env.DATABASE_URL) {
+    throw new Error('DATABASE_URL environment variable is not set');
+  }
+  
+  return new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: {
+      rejectUnauthorized: false
+    }
+  });
+};
 
 export async function GET() {
   try {
-    // First, let's see what tables exist in the database
+    const pool = getPool();
+    
     const allTables = await pool.query(
       `SELECT table_name 
        FROM information_schema.tables 
@@ -12,9 +26,6 @@ export async function GET() {
        ORDER BY table_name`
     );
     
-    console.log('Tables with "telegram" in name:', allTables.rows);
-    
-    // Check if telegram_users table exists
     const tableCheck = await pool.query(
       `SELECT EXISTS (
         SELECT FROM information_schema.tables 
@@ -26,7 +37,6 @@ export async function GET() {
     const tableExists = tableCheck.rows[0]?.exists;
     
     if (!tableExists) {
-      // Let's check what the actual table structure is
       const actualTableName = allTables.rows[0]?.table_name;
       
       if (actualTableName) {
@@ -38,7 +48,6 @@ export async function GET() {
           [actualTableName]
         );
         
-        // Get sample data from the actual table
         let sampleData: unknown[] = [];
                   try {
             if (actualTableName === 'telegram_messages') {
@@ -53,7 +62,6 @@ export async function GET() {
               sampleData = result.rows;
             }
           } catch (e) {
-            console.log('Could not get sample data:', e);
           }
         
         return NextResponse.json({
@@ -72,7 +80,6 @@ export async function GET() {
       });
     }
     
-    // Get table structure
     const structure = await pool.query(
       `SELECT column_name, data_type, is_nullable
        FROM information_schema.columns
@@ -80,12 +87,13 @@ export async function GET() {
        ORDER BY ordinal_position`
     );
     
-    // Get all users
     const users = await pool.query(
       `SELECT username, chat_id, first_name, created_at, updated_at
        FROM telegram_users
        ORDER BY created_at DESC`
     );
+    
+    await pool.end();
     
     return NextResponse.json({
       tableExists: true,
@@ -95,7 +103,6 @@ export async function GET() {
     });
     
   } catch (error) {
-    console.error('Database check error:', error);
     return NextResponse.json({ 
       error: error instanceof Error ? error.message : 'Unknown error',
       tableExists: false 

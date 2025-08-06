@@ -1,11 +1,12 @@
 export type UploadedFile = { 
-  file: File; 
+  file?: File; 
   previewUrl: string | null;
   originalUrl?: string;
   zipImages?: string[];
   currentImageIndex?: number;
   isHtml?: boolean;
   displayName?: string;
+  htmlContent?: string;
 };
 
 export type ExtractedCreative = {
@@ -22,6 +23,7 @@ export type MultiCreative = {
   notes: string;
   type?: "image" | "html";
   htmlContent?: string;
+  fileName?: string;
 };
 
 export type CreativeFormData = {

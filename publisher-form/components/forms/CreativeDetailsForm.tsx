@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo } from "react";
 import { CreativeFormData, Priority, MultiCreative, UploadedFile } from "@/types/creative";
-import { AlignJustify, File, FileArchive } from "lucide-react";
+import { AlignJustify, File, FileArchive, Archive } from "lucide-react";
 import { CREATIVE_TYPES } from "@/constants/creative";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -39,6 +39,7 @@ interface CreativeDetailsFormProps {
   setUploadedCreative: (creative: null | { name: string; url?: string }) => void;
   setTempFileKey: (key: string | null) => void;
   deleteCreative: (fileName: string, fileUrl?: string) => void;
+  setFromSubjectNavigationContext?: (context: "direct" | "single" | "multiple" | null) => void;
 }
 
 export default function CreativeDetailsForm({
@@ -63,6 +64,7 @@ export default function CreativeDetailsForm({
   setUploadedCreative,
   setTempFileKey,
   deleteCreative,
+  setFromSubjectNavigationContext,
   }: CreativeDetailsFormProps) {
   const filteredOffers = useMemo(() => {
     if (!offerSearchTerm) return offers;
@@ -70,6 +72,19 @@ export default function CreativeDetailsForm({
       offerId.toLowerCase().includes(offerSearchTerm.toLowerCase())
     );
   }, [offers, offerSearchTerm]);
+
+  const handleFromSubjectClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    try {
+      if (setFromSubjectNavigationContext) {
+        setFromSubjectNavigationContext("direct");
+      }
+      openModal("From & Subject Lines");
+    } catch (error) {
+    }
+  };
 
   
   return (
@@ -96,10 +111,14 @@ export default function CreativeDetailsForm({
                 onClick={(e) => e.stopPropagation()}
               />
             </div>
-            {filteredOffers.length === 0 ? (
+            {offers.length === 0 ? (
               <div className="flex items-center justify-center px-4 py-6 text-gray-500">
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-sky-500 mr-2"></div>
                 <span className="text-sm">Loading offers...</span>
+              </div>
+            ) : filteredOffers.length === 0 ? (
+              <div className="flex items-center justify-center px-4 py-6 text-gray-500">
+                <span className="text-sm">Offer Id not present</span>
               </div>
             ) : (
               filteredOffers.map((offerId: string) => (
@@ -110,8 +129,6 @@ export default function CreativeDetailsForm({
             )}
           </SelectContent>
         </Select>
-
-
 
         {errors.offerId && (
           <p className="text-red-500 text-sm animate-fade-in">
@@ -139,8 +156,6 @@ export default function CreativeDetailsForm({
             ))}
           </SelectContent>
         </Select>
-
-
 
         {errors.creativeType && (
           <p className="text-red-500 text-sm animate-fade-in">
@@ -201,11 +216,12 @@ export default function CreativeDetailsForm({
           {(savedMultiCreatives.length > 0 || uploadedCreative) && formData.creativeType.toLowerCase() === "email" && (
             <Button
               type="button"
-              onClick={() => openModal("From & Subject Lines")}
+              onClick={handleFromSubjectClick}
               variant="outline"
-              className="w-full h-14 justify-start gap-2"
+              className="flex items-center justify-center gap-2 w-full mb-6 cursor-pointer relative z-10"
+              style={{ pointerEvents: 'auto' }}
             >
-              <AlignJustify className="h-4 w-4 text-gray-600" />
+              <Archive className="h-4 w-4 text-gray-600" />
               <span>From & Subject Lines</span>
             </Button>
           )}
@@ -233,11 +249,12 @@ export default function CreativeDetailsForm({
           {formData.creativeType.toLowerCase() === "email" && (
             <Button
               type="button"
-              onClick={() => openModal("From & Subject Lines")}
+              onClick={handleFromSubjectClick}
               variant="outline"
-              className="flex-1 h-14 justify-start gap-2"
+              className="flex-1 h-14 justify-start gap-2 cursor-pointer relative z-10"
+              style={{ pointerEvents: 'auto' }}
             >
-              <AlignJustify className="h-4 w-4 text-gray-600" />
+              <Archive className="h-4 w-4 text-gray-600" />
               <span>From & Subject Lines</span>
             </Button>
           )}
@@ -290,8 +307,6 @@ export default function CreativeDetailsForm({
           className="w-full min-h-[100px] resize-none transition-all duration-300"
         />
       </div>
-
-
     </>
   );
-} 
+}

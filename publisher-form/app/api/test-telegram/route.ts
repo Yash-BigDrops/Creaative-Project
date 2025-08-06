@@ -1,5 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { pool } from '@/lib/db';
+import { Pool } from 'pg';
+
+const getPool = () => {
+  if (!process.env.DATABASE_URL) {
+    throw new Error('DATABASE_URL environment variable is not set');
+  }
+  
+  return new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: {
+      rejectUnauthorized: false
+    }
+  });
+};
 
 export async function POST(request: NextRequest) {
   try {
@@ -11,8 +24,8 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    console.log(`Test: Adding user @${username} with chat_id: ${chatId}`);
 
+    const pool = getPool();
     const result = await pool.query(
       `INSERT INTO telegram_users (username, chat_id, first_name, created_at)
        VALUES ($1, $2, $3, NOW())
@@ -25,7 +38,8 @@ export async function POST(request: NextRequest) {
       [username, chatId, firstName || 'Test User']
     );
     
-    console.log('Test: Database result:', result.rows[0]);
+    
+    await pool.end();
     
     return NextResponse.json({
       success: true,
@@ -34,7 +48,6 @@ export async function POST(request: NextRequest) {
     });
     
   } catch (error) {
-    console.error('Test Telegram error:', error);
     return NextResponse.json({ 
       error: error instanceof Error ? error.message : 'Unknown error' 
     }, { status: 500 });

@@ -1,27 +1,29 @@
 import { Pool } from 'pg';
 
-// Creative_Files Neon Database Connection
+if (!process.env.DATABASE_URL) {
+  throw new Error(
+    'DATABASE_URL environment variable is not set. ' +
+    'Please configure it in your Vercel environment variables or .env.local file.'
+  );
+}
+
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL || 'postgresql://neondb_owner:npg_R5eKDZ4gdAsk@ep-winter-wind-aehcpswx-pooler.c-2.us-east-2.aws.neon.tech/neondb?channel_binding=require&sslmode=require',
+  connectionString: process.env.DATABASE_URL,
   ssl: {
     rejectUnauthorized: false
   },
-  // Add connection pool settings
   max: 20,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 2000,
 });
 
-// Test connection on startup
 pool.on('connect', () => {
-  console.log('✅ Database connected successfully');
 });
 
 pool.on('error', (err) => {
   console.error('❌ Database connection error:', err);
 });
 
-// Create table if it doesn't exist
 const initializeDatabase = async () => {
   try {
     await pool.query(`
@@ -34,13 +36,11 @@ const initializeDatabase = async () => {
         updated_at TIMESTAMP DEFAULT NOW()
       )
     `);
-    console.log('✅ Database table initialized/verified');
   } catch (error) {
     console.error('❌ Database initialization error:', error);
   }
 };
 
-// Initialize on module load
 initializeDatabase();
 
-export { pool }; 
+export { pool };

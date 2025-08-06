@@ -30,9 +30,37 @@ export async function extractCreativeText(
     try {
       const response = await fetch(file.previewUrl);
       const html = await response.text();
-      return html.replace(/<[^>]+>/g, " ");
+
+      const imgMatch = html.match(/<img[^>]+src=["']([^"']+)["']/i);
+      const imageUrl = imgMatch?.[1];
+
+      if (imageUrl && imageUrl.startsWith("http")) {
+        const ocrResult = await Tesseract.recognize(imageUrl, "eng", {
+          logger: (m) => console.log("OCR progress:", m.status),
+        });
+        const ocrText = ocrResult.data.text.trim();
+        if (ocrText.length > 0) {
+          return ocrText;
+        }
+      }
+
+      const cleanedText = html
+        .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+        .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+        .replace(/<!--[\s\S]*?-->/g, '')
+        .replace(/<br\s*\/?>/gi, '\n')
+        .replace(/<\/p>/gi, '\n')
+        .replace(/<\/div>/gi, '\n')
+        .replace(/<\/h[1-6]>/gi, '\n')
+        .replace(/<[^>]+>/g, '')
+        .replace(/\s+/g, ' ')
+        .replace(/\n\s*\n/g, '\n')
+        .trim();
+
+      return cleanedText;
+
     } catch (error) {
-      console.error("Error fetching HTML content:", error);
+      console.error("❌ Error processing HTML preview for OCR:", error);
       return "";
     }
   }
@@ -40,66 +68,25 @@ export async function extractCreativeText(
   if (file.file && file.file.type.startsWith("image/")) {
     try {
       if (file.file.size < 1024 || file.file.size > 50 * 1024 * 1024) {
-        console.log("File size not suitable for OCR:", file.file.size);
         return "";
       }
 
       if (file.previewUrl) {
-        console.log("Using preview URL for OCR:", file.previewUrl);
         const result = await Tesseract.recognize(file.previewUrl, "eng", {
-          logger: (m) => {
-            if (m.status === "loading tesseract core")
-              console.log("Loading Tesseract core...");
-            else if (m.status === "loading language traineddata")
-              console.log("Loading language data...");
-            else if (m.status === "initializing tesseract")
-              console.log("Initializing Tesseract...");
-            else if (m.status === "recognizing text")
-              console.log("Recognizing text...");
-            else console.log("Tesseract:", m.status);
-          },
+          logger: (m) => console.log("OCR:", m.status)
         });
-        console.log("OCR completed successfully");
         const extractedText = result.data.text || "";
-        console.log("Extracted text length:", extractedText.length);
-        if (extractedText.length > 0) {
-          console.log("First 200 characters:", extractedText.substring(0, 200));
-        }
         return extractedText;
       }
 
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error("OCR timeout")), 15000);
+      const result = await Tesseract.recognize(file.file, "eng", {
+        logger: (m) => console.log("OCR:", m.status),
       });
-
-      console.log("Using original file for OCR");
-      const ocrPromise = Tesseract.recognize(file.file, "eng", {
-        logger: (m) => {
-          if (m.status === "loading tesseract core")
-            console.log("Loading Tesseract core...");
-          else if (m.status === "loading language traineddata")
-            console.log("Loading language data...");
-          else if (m.status === "initializing tesseract")
-            console.log("Initializing Tesseract...");
-          else if (m.status === "recognizing text")
-            console.log("Recognizing text...");
-          else console.log("Tesseract:", m.status);
-        },
-      });
-
-      const result = (await Promise.race([
-        ocrPromise,
-        timeoutPromise,
-      ])) as Awaited<ReturnType<typeof Tesseract.recognize>>;
-      console.log("OCR completed successfully");
       const extractedText = result.data.text || "";
-      console.log("Extracted text length:", extractedText.length);
-      if (extractedText.length > 0) {
-        console.log("First 200 characters:", extractedText.substring(0, 200));
-      }
       return extractedText;
+
     } catch (error) {
-      console.error("Error extracting text from image:", error);
+      console.error("❌ Error extracting text from image:", error);
       return "";
     }
   }

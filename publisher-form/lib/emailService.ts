@@ -1,6 +1,5 @@
 import * as nodemailer from 'nodemailer';
 
-// Email configuration
 const emailConfig = {
   host: process.env.SMTP_HOST || 'smtp.gmail.com',
   port: parseInt(process.env.SMTP_PORT || '587'),
@@ -11,10 +10,8 @@ const emailConfig = {
   },
 };
 
-// Create transporter
 const transporter = nodemailer.createTransport(emailConfig);
 
-// Email template for creative submission
 export const createSubmissionEmail = (data: {
   contactName: string;
   priority: string;
@@ -62,7 +59,6 @@ export const createSubmissionEmail = (data: {
   `;
 };
 
-// Send email function
 export const sendEmail = async (options: {
   to: string;
   subject: string;
@@ -77,7 +73,6 @@ export const sendEmail = async (options: {
     };
 
     const info = await transporter.sendMail(mailOptions);
-    console.log('Email sent successfully:', info.messageId);
     return { success: true, messageId: info.messageId };
   } catch (error) {
     console.error('Email sending failed:', error);
@@ -85,14 +80,11 @@ export const sendEmail = async (options: {
   }
 };
 
-// Verify SMTP connection
 export const verifySMTPConnection = async () => {
   try {
     await transporter.verify();
-    console.log('SMTP connection verified successfully');
     return true;
   } catch (error) {
-    console.error('SMTP connection failed:', error);
     return false;
   }
 }; 

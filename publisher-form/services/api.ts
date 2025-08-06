@@ -31,6 +31,9 @@ export const getClaudeSuggestions = async (data: {
   creativeType: string;
   notes: string;
   creativeContent: string;
+  creativeFileName?: string;
+  creativeIndex?: number;
+  timestamp?: string;
 }): Promise<{ suggestions?: string }> => {
   try {
     const res = await fetch('/api/claude', {

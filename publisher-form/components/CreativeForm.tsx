@@ -43,14 +43,12 @@ export default function CreativeForm() {
     creativeNotes,
     priority,
     uploadedCreative,
-    isRenaming,
     tempFileName,
     htmlCode,
     isCodeMaximized,
     isCodeMinimized,
     multiCreatives,
     editingCreativeIndex,
-    originalZipFileName,
     savedMultiCreatives,
     isZipProcessing,
     zipError,
@@ -82,22 +80,17 @@ export default function CreativeForm() {
     setModalSubjectLines,
     setCreativeNotes,
     setPriority,
-    setIsRenaming,
     setTempFileName,
     setHtmlCode,
     setIsCodeMaximized,
     setIsCodeMinimized,
     setMultiCreatives,
     setEditingCreativeIndex,
-    setOriginalZipFileName,
-    setSavedMultiCreatives,
-    setIsZipProcessing,
-    setZipError,
-    setAiLoading,
-    setIsUploading,
-    setTelegramCheckStatus,
+    setSavedMultiCreatives, 
+    setIsZipProcessing, 
     setUploadedFiles,
     setUploadedCreative,
+    setFromSubjectNavigationContext,
     openModal,
     handleEditCreative,
     handleBackToMultiple,
@@ -119,6 +112,13 @@ export default function CreativeForm() {
       />
     );
   }
+
+  const shouldShowModalHeader = () => {
+    if (uploadType === "multiple" && multiCreatives.length > 0) {
+      return false;
+    }
+    return true;
+  };
 
   return (
     <div
@@ -181,31 +181,32 @@ export default function CreativeForm() {
               />
             )}
 
-            {step === 3 && (
-              <CreativeDetailsForm
-                formData={formData}
-                errors={errors}
-                offers={offers}
-                offerSearchTerm={offerSearchTerm}
-                isOfferDropdownOpen={isOfferDropdownOpen}
-                isCreativeTypeDropdownOpen={isCreativeTypeDropdownOpen}
-                priority={priority}
-                uploadedCreative={uploadedCreative}
-                savedMultiCreatives={savedMultiCreatives}
-                handleInputChange={handleInputChange}
-                setOfferSearchTerm={setOfferSearchTerm}
-                setIsOfferDropdownOpen={setIsOfferDropdownOpen}
-                setIsCreativeTypeDropdownOpen={setIsCreativeTypeDropdownOpen}
-                setPriority={setPriority}
-                openModal={openModal}
-                setUploadType={setUploadType}
-                setMultiCreatives={setMultiCreatives}
-                setUploadedFiles={setUploadedFiles}
-                setUploadedCreative={setUploadedCreative}
-                setTempFileKey={setTempFileKey}
-                deleteCreative={deleteCreative}
-              />
-            )}
+                         {step === 3 && (
+               <CreativeDetailsForm
+                 formData={formData}
+                 errors={errors}
+                 offers={offers}
+                 offerSearchTerm={offerSearchTerm}
+                 isOfferDropdownOpen={isOfferDropdownOpen}
+                 isCreativeTypeDropdownOpen={isCreativeTypeDropdownOpen}
+                 priority={priority}
+                 uploadedCreative={uploadedCreative}
+                 savedMultiCreatives={savedMultiCreatives}
+                 handleInputChange={handleInputChange}
+                 setOfferSearchTerm={setOfferSearchTerm}
+                 setIsOfferDropdownOpen={setIsOfferDropdownOpen}
+                 setIsCreativeTypeDropdownOpen={setIsCreativeTypeDropdownOpen}
+                 setPriority={setPriority}
+                 openModal={openModal}
+                 setUploadType={setUploadType}
+                 setMultiCreatives={setMultiCreatives}
+                 setUploadedFiles={setUploadedFiles}
+                 setUploadedCreative={setUploadedCreative}
+                 setTempFileKey={setTempFileKey}
+                 deleteCreative={deleteCreative}
+                 setFromSubjectNavigationContext={setFromSubjectNavigationContext}
+               />
+             )}
 
             <div className="flex flex-col pt-4 gap-4 animate-fade-in-delay-4">
               {step === 1 && (
@@ -279,7 +280,7 @@ export default function CreativeForm() {
             setPreviewImage(null);
             setPreviewedCreative(null);
           }}
-          style={{ overflowY: 'auto' }}
+          style={{ overflowY: "auto" }}
         >
           <div
             className="relative max-w-[90vw] max-h-[90vh] animate-scale-in fullscreen-modal"
@@ -322,152 +323,206 @@ export default function CreativeForm() {
         <div
           className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center modal-backdrop animate-fade-in p-2 sm:p-4"
           onClick={closeModal}
-          style={{ overflowY: 'auto' }}
+          style={{ overflowY: "auto" }}
         >
           <div
             className="bg-white rounded-2xl shadow-2xl border border-gray-100 w-full max-w-[95vw] lg:max-w-[90vw] xl:max-w-[85vw] h-auto lg:h-[95vh] overflow-hidden relative animate-scale-in modal-content"
             onClick={(e) => e.stopPropagation()}
-            style={{ maxHeight: '95vh' }}
+            style={{ maxHeight: "95vh" }}
           >
-            {/* Header */}
-            <div className="flex justify-between items-center px-4 sm:px-6 lg:px-8 py-4 sm:py-6 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
-              <div className="flex items-center gap-3">
-                {/* Back button only when editing from multiple uploads */}
-                {editingCreativeIndex !== null && (
-                  <Button
-                    onClick={() => {
-                      // Go back to multiple uploads
-                      setUploadType("multiple");
-                      setEditingCreativeIndex(null);
-                      setUploadedFiles([]);
-                      setHtmlCode("");
-                      setCreativeNotes("");
-                      setModalFromLine("");
-                      setModalSubjectLines("");
-                      setPreviewImage(null);
-                      setPreviewedCreative(null);
-                    }}
-                    variant="ghost"
-                    size="sm"
-                    className="p-2 rounded-full hover:bg-gray-100 transition-all duration-200 group"
-                    title="Back to Multiple Creatives"
-                  >
-                    <svg className="h-5 w-5 text-gray-500 group-hover:text-gray-700 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                    </svg>
-                  </Button>
-                )}
-                <div>
-                  <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">
-                    {uploadType === "single" && "Upload Single Creative"}
-                    {uploadType === "multiple" && "Upload Multiple Creatives"}
-                    {!uploadType && selectedOption}
-                  </h2>
-                  <p className="text-xs sm:text-sm text-gray-500 mt-1">
-                    {uploadType === "single" && "Upload and configure a single creative file"}
-                    {uploadType === "multiple" && "Upload and manage multiple creative files"}
-                    {!uploadType && "Configure your creative settings"}
-                  </p>
+            {shouldShowModalHeader() && (
+              <div className="flex justify-between items-center px-4 sm:px-6 lg:px-8 py-4 sm:py-6 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
+                                 <div className="flex items-center gap-3">
+
+                   {editingCreativeIndex !== null && (
+                     <Button
+                       onClick={() => {
+                         setUploadType("multiple");
+                         
+                         setEditingCreativeIndex(null);
+                         
+                         setUploadedFiles([]);      
+                         setHtmlCode("");          
+                         setCreativeNotes("");     
+                         setModalFromLine("");     
+                         setModalSubjectLines(""); 
+                         
+                         setPreviewImage(null);      
+                         setPreviewedCreative(null); 
+                         
+                       }}
+                       variant="ghost"
+                       size="sm"
+                       className="p-2 rounded-full hover:bg-gray-100 transition-all duration-200 group"
+                       title="Back to Multiple Creatives"
+                     >
+                       
+                       <svg
+                         className="h-5 w-5 text-gray-500 group-hover:text-gray-700 transition-colors"
+                         fill="none"
+                         stroke="currentColor"
+                         viewBox="0 0 24 24"
+                       >
+                         <path
+                           strokeLinecap="round"
+                           strokeLinejoin="round"
+                           strokeWidth={2}
+                           d="M15 19l-7-7 7-7"
+                         />
+                       </svg>
+                     </Button>
+                   )}
+                  <div>
+                    <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">
+                      {uploadType === "single" && "Upload Single Creative"}
+                      {uploadType === "multiple" && "Upload Multiple Creatives"}
+                      {!uploadType && selectedOption}
+                    </h2>
+                    <p className="text-xs sm:text-sm text-gray-500 mt-1">
+                      {uploadType === "single" &&
+                        "Upload and configure a single creative file"}
+                      {uploadType === "multiple" &&
+                        "Upload and manage multiple creative files"}
+                      {!uploadType && "Configure your creative settings"}
+                    </p>
+                  </div>
                 </div>
+                <Button
+                  onClick={closeModal}
+                  variant="ghost"
+                  size="sm"
+                  className="p-2 rounded-full hover:bg-gray-100 transition-all duration-200 group"
+                  title="Close"
+                >
+                  <X className="h-5 w-5 text-gray-500 group-hover:text-gray-700 transition-colors" />
+                </Button>
               </div>
-              <Button
-                onClick={closeModal}
-                variant="ghost"
-                size="sm"
-                className="p-2 rounded-full hover:bg-gray-100 transition-all duration-200 group"
-                title="Close"
-              >
-                <X className="h-5 w-5 text-gray-500 group-hover:text-gray-700 transition-colors" />
-              </Button>
-            </div>
+            )}
 
-            {/* Content */}
-            <div className="overflow-y-auto p-3 sm:p-4 lg:p-6" style={{ maxHeight: 'calc(95vh - 100px)' }}>
+            {!shouldShowModalHeader() && (
+              <div className="absolute top-4 right-4 z-50">
+                <Button
+                  onClick={closeModal}
+                  variant="ghost"
+                  size="sm"
+                  className="p-2 rounded-full hover:bg-gray-100 transition-all duration-200 group shadow-lg bg-white/90 backdrop-blur-sm"
+                  title="Close"
+                >
+                  <X className="h-5 w-5 text-gray-500 group-hover:text-gray-700 transition-colors" />
+                </Button>
+              </div>
+            )}
 
-            {(uploadType === "single" || uploadType === "multiple") && (
-              <>
-                {uploadType === "single" && uploadedFiles.length > 0 ? (
-                  <SingleUploadModal
-                    uploadedFiles={uploadedFiles}
-                    htmlCode={htmlCode}
-                    isCodeMaximized={isCodeMaximized}
-                    isCodeMinimized={isCodeMinimized}
-                    isRenaming={isRenaming}
-                    tempFileName={tempFileName}
-                    creativeNotes={creativeNotes}
+             <div
+               className={`overflow-y-auto p-3 sm:p-4 lg:p-6 ${
+                 shouldShowModalHeader() ? "" : "pt-6"
+               }`}
+               style={{
+                 maxHeight: shouldShowModalHeader()
+                   ? "calc(95vh - 100px)"
+                   : "95vh",
+               }}
+             >
+                {selectedOption === "From & Subject Lines" && (
+                  <FromSubjectModal
+                    fromLine={fromLine}
+                    subjectLines={subjectLines}
                     modalFromLine={modalFromLine}
                     modalSubjectLines={modalSubjectLines}
-                    previewImage={previewImage}
-                    setPreviewImage={setPreviewImage}
-                    setHtmlCode={setHtmlCode}
-                    setIsCodeMaximized={setIsCodeMaximized}
-                    setIsCodeMinimized={setIsCodeMinimized}
-                    setIsRenaming={setIsRenaming}
-                    setTempFileName={setTempFileName}
-                    setCreativeNotes={setCreativeNotes}
+                    aiLoading={aiLoading}
+                    setFromLine={setFromLine}
+                    setSubjectLines={setSubjectLines}
                     setModalFromLine={setModalFromLine}
                     setModalSubjectLines={setModalSubjectLines}
-                    setUploadedFiles={setUploadedFiles}
-                    handleFileSelect={handleFileSelect}
-                    openModal={openModal}
-                    closeModal={closeModal}
-                    saveCreative={saveCreative}
-                    isFromMultiple={editingCreativeIndex !== null}
-                  />
-                ) : uploadType === "multiple" && multiCreatives.length > 0 ? (
-                  <MultipleUploadModal
-                    multiCreatives={multiCreatives}
-                    isZipProcessing={isZipProcessing}
-                    zipError={zipError}
-                    isDragOver={isDragOver}
-                    isUploading={isUploading}
-                    previewImage={previewImage}
-                    previewedCreative={previewedCreative}
-                    setPreviewImage={setPreviewImage}
-                    setPreviewedCreative={setPreviewedCreative}
-                    setMultiCreatives={setMultiCreatives}
-                    handleFileSelect={handleFileSelect}
-                    handleDragOver={handleDragOver}
-                    handleDragLeave={handleDragLeave}
-                    handleDrop={handleDrop}
-                    handleMultipleCreativesSave={handleMultipleCreativesSave}
-                    onEditCreative={handleEditCreative}
-                    openModal={openModal}
-                    setUploadType={setUploadType}
-                    setUploadedCreative={setUploadedCreative}
-                    setHtmlCode={setHtmlCode}
-                  />
-                ) : (
-                  <CreativeModal
-                    uploadedFiles={uploadedFiles}
-                    isDragOver={isDragOver}
-                    isUploading={isUploading}
-                    handleFileSelect={handleFileSelect}
-                    handleDragOver={handleDragOver}
-                    handleDragLeave={handleDragLeave}
-                    handleDrop={handleDrop}
+                    enhanceWithClaude={enhanceWithClaude}
+                    closeModal={() => {
+                      
+                      closeModal();
+                    }}
+                    onBackToSingle={() => {
+                      
+                      handleBackToSingle();
+                    }}
+                    navigationContext={fromSubjectNavigationContext}
                   />
                 )}
-              </>
-            )}
 
-            {!uploadType && selectedOption === "From & Subject Lines" && (
-              <FromSubjectModal
-                fromLine={fromLine}
-                subjectLines={subjectLines}
-                aiLoading={aiLoading}
-                setFromLine={setFromLine}
-                setSubjectLines={setSubjectLines}
-                enhanceWithClaude={enhanceWithClaude}
-                closeModal={closeModal}
-                onBackToSingle={handleBackToSingle}
-                navigationContext={fromSubjectNavigationContext}
-              />
-            )}
-            </div>
+                {selectedOption !== "From & Subject Lines" && (uploadType === "single" || uploadType === "multiple") && (
+                   <>
+                     {uploadType === "single" && uploadedFiles.length > 0 ? (
+                       <SingleUploadModal
+                         uploadedFiles={uploadedFiles}
+                         htmlCode={htmlCode}
+                         isCodeMaximized={isCodeMaximized}
+                         isCodeMinimized={isCodeMinimized}
+                         tempFileName={tempFileName}
+                         creativeNotes={creativeNotes}
+                         modalFromLine={modalFromLine}
+                         modalSubjectLines={modalSubjectLines}
+                         previewImage={previewImage}
+                         setPreviewImage={setPreviewImage}
+                         setHtmlCode={setHtmlCode}
+                         setIsCodeMaximized={setIsCodeMaximized}
+                         setIsCodeMinimized={setIsCodeMinimized}
+                         setTempFileName={setTempFileName}
+                         setCreativeNotes={setCreativeNotes}
+                         setModalFromLine={setModalFromLine}
+                         setModalSubjectLines={setModalSubjectLines}
+                         setUploadedFiles={setUploadedFiles}
+                         handleFileSelect={handleFileSelect}
+                         openModal={openModal}
+                         closeModal={closeModal}
+                         saveCreative={saveCreative}
+                         isFromMultiple={editingCreativeIndex !== null}
+                         setUploadType={setUploadType}
+                         setEditingCreativeIndex={setEditingCreativeIndex}
+                         setFromSubjectNavigationContext={
+                           setFromSubjectNavigationContext
+                         }
+                       />
+                     ) : uploadType === "multiple" && multiCreatives.length > 0 ? (
+                       <MultipleUploadModal
+                         multiCreatives={multiCreatives}
+                         isZipProcessing={isZipProcessing}
+                         zipError={zipError}
+                         isDragOver={isDragOver}
+                         isUploading={isUploading}
+                         previewImage={previewImage}
+                         previewedCreative={previewedCreative}
+                         setPreviewImage={setPreviewImage}
+                         setPreviewedCreative={setPreviewedCreative}
+                         setMultiCreatives={setMultiCreatives}
+                         handleFileSelect={handleFileSelect}
+                         handleDragOver={handleDragOver}
+                         handleDragLeave={handleDragLeave}
+                         handleDrop={handleDrop}
+                         handleMultipleCreativesSave={handleMultipleCreativesSave}
+                         onEditCreative={handleEditCreative}
+                         openModal={openModal}
+                         setUploadType={setUploadType}
+                         setUploadedCreative={setUploadedCreative}
+                         setHtmlCode={setHtmlCode}
+                         setUploadedFiles={setUploadedFiles}
+                       />
+                     ) : (
+                       <CreativeModal
+                         uploadedFiles={uploadedFiles}
+                         isDragOver={isDragOver}
+                         isUploading={isUploading}
+                         handleFileSelect={handleFileSelect}
+                         handleDragOver={handleDragOver}
+                         handleDragLeave={handleDragLeave}
+                         handleDrop={handleDrop}
+                       />
+                     )}
+                   </>
+                 )}
+
+
+             </div>
           </div>
         </div>
       )}
     </div>
   );
-} 
+}

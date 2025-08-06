@@ -1,9 +1,7 @@
 "use client";
 
 import React from "react";
-import Image from "next/image";
 import { UploadedFile } from "@/types/creative";
-import { Button } from "@/components/ui/button";
 import { Upload } from "lucide-react";
 
 interface CreativeModalProps {

@@ -1,5 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { pool } from '@/lib/db';
+import { Pool } from 'pg';
+
+const getPool = () => {
+  if (!process.env.DATABASE_URL) {
+    throw new Error('DATABASE_URL environment variable is not set');
+  }
+  
+  return new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: {
+      rejectUnauthorized: false
+    }
+  });
+};
 
 export async function POST(request: NextRequest) {
   try {
@@ -10,9 +23,9 @@ export async function POST(request: NextRequest) {
     }
 
     const cleanUsername = username.trim().replace(/^@/, '');
-    console.log(`Checking Telegram user: @${cleanUsername}`);
 
-    // First, let's check if the table exists
+    const pool = getPool();
+
     const tableCheck = await pool.query(
       `SELECT EXISTS (
         SELECT FROM information_schema.tables 
@@ -22,10 +35,9 @@ export async function POST(request: NextRequest) {
     );
     
     const tableExists = tableCheck.rows[0]?.exists;
-    console.log(`telegram_users table exists: ${tableExists}`);
     
     if (!tableExists) {
-      console.log('telegram_users table does not exist');
+      await pool.end();
       return NextResponse.json({ 
         started: false, 
         message: "Database table not found. Please contact support." 
@@ -39,20 +51,17 @@ export async function POST(request: NextRequest) {
       [cleanUsername]
     );
 
-    console.log(`Database query result for @${cleanUsername}:`, result.rows);
 
     if (result.rows.length === 0) {
-      console.log(`User @${cleanUsername} not found in database - needs to start bot`);
       
-      // Let's also check what users are in the database
       const allUsers = await pool.query(
         `SELECT username, chat_id, first_name, created_at
          FROM telegram_users
          ORDER BY created_at DESC
          LIMIT 5`
       );
-      console.log('Recent users in database:', allUsers.rows);
       
+      await pool.end();
       return NextResponse.json({ 
         started: false, 
         message: `User @${cleanUsername} not found. Please start the bot first by sending /start to @BigDropsMarketingBot` 
@@ -60,10 +69,10 @@ export async function POST(request: NextRequest) {
     }
 
     const user = result.rows[0];
-    console.log(`Found user @${cleanUsername} with chat_id: ${user.chat_id}`);
 
     const botToken = process.env.TELEGRAM_BOT_TOKEN;
     if (!botToken) {
+      await pool.end();
       return NextResponse.json({ started: false });
     }
 
@@ -78,12 +87,12 @@ export async function POST(request: NextRequest) {
     });
 
     const msgData = await msgRes.json();
-    console.log("Telegram sendMessage response:", msgData);
 
     if (msgData.ok) {
+      await pool.end();
       return NextResponse.json({ started: true, message: "Telegram connection verified successfully!" });
     } else {
-      console.log("sendMessage failed:", msgData.description);
+      await pool.end();
       return NextResponse.json({ 
         started: false, 
         message: `Failed to send test message: ${msgData.description}` 
@@ -91,7 +100,6 @@ export async function POST(request: NextRequest) {
     }
 
   } catch (err) {
-    console.error("Telegram check error:", err);
     return NextResponse.json({ started: false });
   }
 } 

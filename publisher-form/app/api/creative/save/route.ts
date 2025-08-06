@@ -9,15 +9,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "No file URL provided" }, { status: 400 });
     }
 
-    console.log("Saving creative:", {
-      offerId,
-      creativeType,
-      fromLine,
-      subjectLines,
-      notes,
-      fileUrl,
-      multiCreativesCount: multiCreatives?.length || 0
-    });
+
 
     return NextResponse.json({ 
       success: true,
@@ -25,7 +17,7 @@ export async function POST(req: Request) {
       fileUrl: fileUrl
     });
   } catch (error) {
-    console.error("Save creative error:", error);
+
     return NextResponse.json({ error: "Save failed" }, { status: 500 });
   }
 } 

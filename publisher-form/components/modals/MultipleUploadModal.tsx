@@ -27,6 +27,7 @@ interface MultipleUploadModalProps {
   setUploadType: (type: "single" | "multiple") => void;
   setUploadedCreative: (creative: null | { name: string; url?: string }) => void;
   setHtmlCode: (code: string) => void;
+  setUploadedFiles: React.Dispatch<React.SetStateAction<UploadedFile[]>>;
 }
 
 export default function MultipleUploadModal({
@@ -50,6 +51,7 @@ export default function MultipleUploadModal({
   setUploadType,
   setUploadedCreative,
   setHtmlCode,
+  setUploadedFiles,
 }: MultipleUploadModalProps) {
   return (
     <div className="w-full p-4 sm:p-6 lg:p-8">
@@ -103,7 +105,7 @@ export default function MultipleUploadModal({
                     });
                   }}
                   variant="secondary"
-                  className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-white font-medium"
+                  className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-black font-medium"
                 >
                   Preview
                 </Button>
@@ -118,19 +120,7 @@ export default function MultipleUploadModal({
 
               <div className="p-3 border-t border-gray-100 flex gap-2">
                 <button
-                  onClick={() => {
-                    setUploadedCreative({
-                      name: `Creative-${idx + 1}`,
-                      url: creative.imageUrl
-                    });
-                    
-                    if (creative.type === 'html' && creative.htmlContent) {
-                      setHtmlCode(creative.htmlContent);
-                    }
-                    
-                    setUploadType("single");
-                    openModal("Single Creative", true);
-                  }}
+                  onClick={() => onEditCreative && onEditCreative(creative)}
                   className="flex-1 border border-sky-400 text-sky-500 text-sm rounded-lg py-1 hover:bg-sky-50 transition-all"
                 >
                   Edit
@@ -240,4 +230,4 @@ export default function MultipleUploadModal({
       )}
     </div>
   );
-} 
+}

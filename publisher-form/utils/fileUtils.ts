@@ -20,6 +20,44 @@ export const formatFileSize = (bytes: number) => {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
 };
 
+const getDirectoryPath = (filePath: string): string => {
+  const normalizedPath = normalizePath(filePath);
+  const lastSlashIndex = normalizedPath.lastIndexOf('/');
+  return lastSlashIndex > -1 ? normalizedPath.substring(0, lastSlashIndex) : '';
+};
+
+const getTopLevelDirectory = (filePath: string): string => {
+  const normalizedPath = normalizePath(filePath);
+  const firstSlashIndex = normalizedPath.indexOf('/');
+  return firstSlashIndex > -1 ? normalizedPath.substring(0, firstSlashIndex) : '';
+};
+
+const isInRootDirectory = (filePath: string): boolean => {
+  const normalizedPath = normalizePath(filePath);
+  return !normalizedPath.includes('/');
+};
+
+const directoryOrParentHasHTML = (filePath: string, allFiles: string[]): boolean => {
+  const normalizedPath = normalizePath(filePath);
+  const pathParts = normalizedPath.split('/');
+  
+  for (let i = pathParts.length - 1; i >= 0; i--) {
+    const currentDirPath = pathParts.slice(0, i).join('/');
+    
+    const hasHTMLInThisLevel = allFiles.some(file => {
+      const fileDir = getDirectoryPath(file);
+      const fileName = normalizePath(file);
+      return fileDir === currentDirPath && fileName.endsWith('.html');
+    });
+    
+    if (hasHTMLInThisLevel) {
+      return true;
+    }
+  }
+  
+  return false;
+};
+
 export async function extractCreativesFromZip(
   zipBlob: Blob,
   depth = 0
@@ -31,77 +69,216 @@ export async function extractCreativesFromZip(
   let creatives: ExtractedCreative[] = [];
   
   console.log(`📦 ZIP contains ${Object.keys(zipData.files).length} files:`);
-  const allFiles = Object.keys(zipData.files);
+  const allFiles = Object.keys(zipData.files).filter(path => !zipData.files[path].dir);
   allFiles.forEach(file => {
     console.log(`  - ${file}`);
   });
   
-  // Count files by type
+  const creativeGroups = new Map<string, string[]>();
+  const rootFiles: string[] = [];
+  
+  allFiles.forEach(filePath => {
+    if (isInRootDirectory(filePath)) {
+      rootFiles.push(filePath);
+    } else {
+      const topLevelDir = getTopLevelDirectory(filePath);
+      if (!creativeGroups.has(topLevelDir)) {
+        creativeGroups.set(topLevelDir, []);
+      }
+      creativeGroups.get(topLevelDir)!.push(filePath);
+    }
+  });
+  
+  await processRootFiles(rootFiles, zipData, creatives);
+  
+  for (const [dirPath, dirFiles] of creativeGroups.entries()) {
+    console.log(`📁 Processing creative group: ${dirPath} (${dirFiles.length} files)`);
+    await processCreativeGroup(dirPath, dirFiles, zipData, creatives, allFiles);
+  }
+  
   const htmlFiles = allFiles.filter(f => normalizePath(f).endsWith('.html'));
   const imageFiles = allFiles.filter(f => /\.(png|jpg|jpeg|gif|webp)$/i.test(normalizePath(f)));
-  const zipFiles = allFiles.filter(f => normalizePath(f).endsWith('.zip'));
-  const otherFiles = allFiles.filter(f => !normalizePath(f).endsWith('.html') && !/\.(png|jpg|jpeg|gif|webp)$/i.test(normalizePath(f)) && !normalizePath(f).endsWith('.zip'));
+  const zipFiles = allFiles.filter(f => normalizePath(f).endsWith('.zip')); 
+  return creatives;
+}
+
+async function processRootFiles(
+  files: string[], 
+  zipData: JSZip, 
+  creatives: ExtractedCreative[]
+): Promise<void> {
+  const htmlFiles = files.filter(f => normalizePath(f).endsWith('.html'));
+  const imageFiles = files.filter(f => /\.(png|jpg|jpeg|gif|webp)$/i.test(normalizePath(f)));
+  const zipFiles = files.filter(f => normalizePath(f).endsWith('.zip'));
   
-  console.log(`📊 File breakdown:`, {
-    total: allFiles.length,
-    html: htmlFiles.length,
-    image: imageFiles.length,
-    zip: zipFiles.length,
-    other: otherFiles.length
-  });
-
-  // Process all files in the ZIP as individual creatives
-  let processedCount = 0;
-  for (const [path, entry] of Object.entries(zipData.files)) {
-    if (entry.dir) {
-      console.log(`📁 Skipping directory: ${path}`);
-      continue;
-    }
-    const lowerPath = normalizePath(path);
-
-    console.log(`📄 Processing file ${processedCount + 1}: ${path}`);
-
-    // Handle HTML files - extract as original content
-    if (lowerPath.endsWith(".html")) {
+  for (const htmlPath of htmlFiles) {
+    try {
+      const entry = zipData.files[htmlPath];
       const htmlContent = await entry.async("string");
-      // Create a simple URL for the HTML content without creating a new Blob
       const url = `data:text/html;charset=utf-8,${encodeURIComponent(htmlContent)}`;
       creatives.push({ type: "html", url, htmlContent });
-      console.log(`✅ Added HTML creative: ${path}`);
-      processedCount++;
-    }
-    // Handle image files - extract as original blob
-    else if (/\.(png|jpg|jpeg|gif|webp)$/i.test(lowerPath)) {
-      const originalBlob = await entry.async("blob");
-      // Use the original blob directly without creating a new one
-      const url = URL.createObjectURL(originalBlob);
-      creatives.push({ type: "image", url });
-      console.log(`✅ Added image creative: ${path}`);
-      processedCount++;
-    }
-    // Handle nested ZIP files - extract recursively
-    else if (lowerPath.endsWith(".zip")) {
-      const innerBlob = await entry.async("blob");
-      const innerCreatives: ExtractedCreative[] =
-        await extractCreativesFromZip(innerBlob, depth + 1);
-      creatives = creatives.concat(innerCreatives);
-      console.log(`✅ Added ${innerCreatives.length} nested ZIP creatives from: ${path}`);
-      processedCount++;
-    }
-    // Skip other file types
-    else {
-      console.log(`⏭️ Skipping unsupported file type: ${path}`);
+    } catch (error) {
+      console.error(`  ❌ Error processing HTML file ${htmlPath}:`, error);
     }
   }
   
-  console.log(`📊 Processed ${processedCount} files, created ${creatives.length} creatives`);
+  if (htmlFiles.length === 0) {
+    for (const imagePath of imageFiles) {
+      try {
+        const entry = zipData.files[imagePath];
+        const originalBlob = await entry.async("blob");
+        const url = URL.createObjectURL(originalBlob);
+        creatives.push({ type: "image", url });
+      } catch (error) {
+        console.error(`  ❌ Error processing image file ${imagePath}:`, error);
+      }
+    }
+  } else {
+  }
+  
+  for (const zipPath of zipFiles) {
+    try {
+      const entry = zipData.files[zipPath];
+      const innerBlob = await entry.async("blob");
+      const innerCreatives = await extractCreativesFromZip(innerBlob, 1);
+      creatives.push(...innerCreatives);
+    } catch (error) {
+      console.error(`  ❌ Error processing ZIP file ${zipPath}:`, error);
+    }
+  }
+}
 
-  console.log(
-    `📊 ZIP processing complete: ${creatives.length} creatives extracted`
-  );
-  console.log(
-    `📊 Breakdown: ${creatives.filter((c) => c.type === "html").length} HTML creatives, ${creatives.filter((c) => c.type === "image").length} image creatives`
-  );
+async function processCreativeGroup(
+  groupName: string,
+  files: string[], 
+  zipData: JSZip, 
+  creatives: ExtractedCreative[],
+  allFiles: string[]
+): Promise<void> {
+  const htmlFiles = files.filter(f => normalizePath(f).endsWith('.html'));
+  const imageFiles = files.filter(f => /\.(png|jpg|jpeg|gif|webp)$/i.test(normalizePath(f)));
+  const zipFiles = files.filter(f => normalizePath(f).endsWith('.zip'));
+  
+  
+  const uniqueDirs = new Set(files.map(f => getDirectoryPath(f)));
+  uniqueDirs.forEach(dir => {
+    const filesInDir = files.filter(f => getDirectoryPath(f) === dir);
+  });
+  
+  if (htmlFiles.length > 0) {
+    
+    for (const htmlPath of htmlFiles) {
+      try {
+        const entry = zipData.files[htmlPath];
+        const htmlContent = await entry.async("string");
+        
+        let processedHtmlContent = await embedImagesInHTML(htmlContent, imageFiles, zipData, groupName);
+        
+        const url = `data:text/html;charset=utf-8,${encodeURIComponent(processedHtmlContent)}`;
+        creatives.push({ type: "html", url, htmlContent: processedHtmlContent });
+      } catch (error) {
+        console.error(`  ❌ Error processing HTML file ${htmlPath}:`, error);
+      }
+    }
+  } else {
+    for (const imagePath of imageFiles) {
+      try {
+        const entry = zipData.files[imagePath];
+        const originalBlob = await entry.async("blob");
+        const url = URL.createObjectURL(originalBlob);
+        creatives.push({ type: "image", url });
+      } catch (error) {
+        console.error(`  ❌ Error processing image file ${imagePath}:`, error);
+      }
+    }
+  }
+  
+  for (const zipPath of zipFiles) {
+    try {
+      const entry = zipData.files[zipPath];
+      const innerBlob = await entry.async("blob");
+      const innerCreatives = await extractCreativesFromZip(innerBlob, 1);
+      creatives.push(...innerCreatives);
+    } catch (error) {
+      console.error(`  ❌ Error processing ZIP file ${zipPath}:`, error);
+    }
+  }
+}
 
-  return creatives;
-} 
+async function embedImagesInHTML(
+  htmlContent: string, 
+  imageFiles: string[], 
+  zipData: JSZip, 
+  groupName: string
+): Promise<string> {
+  let processedHTML = htmlContent;
+  
+  async function blobToBase64(blob: Blob): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  }
+  
+  for (const imagePath of imageFiles) {
+    try {
+      const entry = zipData.files[imagePath];
+      const imageBlob = await entry.async("blob");
+      
+      const dataUrl = await blobToBase64(imageBlob);
+      
+      const fileName = imagePath.split('/').pop()!;
+      
+      const possibleRefs = [
+        fileName,
+        `./${fileName}`,
+        `../${fileName}`,
+        imagePath,
+        `images/${fileName}`,
+        `./images/${fileName}`,
+        `../images/${fileName}`
+      ];
+      
+      possibleRefs.forEach(ref => {
+        const escapedRef = ref.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        
+        processedHTML = processedHTML.replace(
+          new RegExp(`src=["']${escapedRef}["']`, 'gi'),
+          `src="${dataUrl}"`
+        );
+        
+        processedHTML = processedHTML.replace(
+          new RegExp(`background-image:\\s*url\\(["']?${escapedRef}["']?\\)`, 'gi'),
+          `background-image: url(${dataUrl})`
+        );
+      });
+      
+    } catch (error) {
+      console.error(`    ❌ Failed to embed image ${imagePath}:`, error);
+    }
+  }
+  
+  return processedHTML;
+}
+
+function getImageMimeType(filePath: string): string {
+  const extension = normalizePath(filePath).split('.').pop();
+  
+  switch (extension) {
+    case 'jpg':
+    case 'jpeg':
+      return 'image/jpeg';
+    case 'png':
+      return 'image/png';
+    case 'gif':
+      return 'image/gif';
+    case 'webp':
+      return 'image/webp';
+    case 'svg':
+      return 'image/svg+xml';
+    default:
+      return 'image/png';
+  }
+}

@@ -66,8 +66,12 @@ export const useCreativeForm = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [telegramCheckStatus, setTelegramCheckStatus] = useState<TelegramCheckStatus>("unchecked");
   const [fromSubjectNavigationContext, setFromSubjectNavigationContext] = useState<"direct" | "single" | "multiple" | null>(null);
+  
+  const [previousSuggestions, setPreviousSuggestions] = useState<{
+    fromLines: string[];
+    subjectLines: string[];
+  }>({ fromLines: [], subjectLines: [] });
 
-  // Fetch offers on component mount
   useEffect(() => {
     const loadOffers = async () => {
       const offersData = await fetchOffers();
@@ -97,25 +101,35 @@ export const useCreativeForm = () => {
 
     try {
       const data = await checkTelegramUser(cleanUsername);
-      console.log("Telegram check response:", data);
       
       if (data.started) {
         setTelegramCheckStatus("ok");
-        // Show success message
         if (data.message) {
-          console.log("Telegram success:", data.message);
         }
       } else {
         setTelegramCheckStatus("not_started");
-        // Show error message
-        if (data.message) {
-          console.log("Telegram error:", data.message);
-        }
       }
     } catch (err) {
-      console.error("Telegram check failed", err);
       setTelegramCheckStatus("not_started");
     }
+  };
+
+  const checkForDuplicates = (newFromLines: string[], newSubjectLines: string[]): boolean => {
+    const allPreviousFromLines = previousSuggestions.fromLines.join(' ').toLowerCase();
+    const allPreviousSubjectLines = previousSuggestions.subjectLines.join(' ').toLowerCase();
+    
+    const newFromText = newFromLines.join(' ').toLowerCase();
+    const newSubjectText = newSubjectLines.join(' ').toLowerCase();
+    
+    const fromSimilarity = newFromLines.some(line => 
+      allPreviousFromLines.includes(line.toLowerCase().substring(0, 20))
+    );
+    
+    const subjectSimilarity = newSubjectLines.some(line => 
+      allPreviousSubjectLines.includes(line.toLowerCase().substring(0, 20))
+    );
+    
+    return fromSimilarity || subjectSimilarity;
   };
 
   const enhanceWithClaude = async () => {
@@ -123,7 +137,7 @@ export const useCreativeForm = () => {
       alert('Please enter a Company Name first.');
       return;
     }
-    
+
     if (!formData.offerId?.trim()) {
       alert('Please select an Offer ID first.');
       return;
@@ -135,89 +149,271 @@ export const useCreativeForm = () => {
     }
 
     setAiLoading(true);
+
     try {
-      console.log('Starting AI suggestion generation...');
-      
       let creativeContent = '';
-      if (uploadedFiles.length > 0) {
-        creativeContent = await extractCreativeText(uploadedFiles);
-      } else if (uploadedCreative?.url) {
-        try {
-          const response = await fetch(uploadedCreative.url);
-          const html = await response.text();
-          creativeContent = html.replace(/<[^>]+>/g, " ");
-        } catch (error) {
-          console.error('Error fetching saved creative content:', error);
-          creativeContent = 'Creative content available but could not be extracted';
+
+      if (fromSubjectNavigationContext === "direct") {
+        const allFiles: any[] = [];
+
+        if (uploadedFiles.length > 0) {
+          allFiles.push(...uploadedFiles);
+        }
+
+        if (multiCreatives.length > 0) {
+          multiCreatives.forEach((creative, idx) => {
+            if (creative.type === "html" && creative.htmlContent) {
+              allFiles.push({
+                file: new File([], `creative-${idx + 1}.html`, { type: "text/html" }),
+                previewUrl: creative.imageUrl || "",
+                isHtml: true,
+                extractedContent: creative.htmlContent,
+              });
+            } else if (creative.type === "image") {
+              allFiles.push({
+                file: new File([], `creative-${idx + 1}.png`, { type: "image/png" }),
+                previewUrl: creative.imageUrl || "",
+                isHtml: false,
+              });
+            }
+          });
+        }
+
+        creativeContent = await extractCreativeText(allFiles);
+      } else {
+        if (uploadedFiles.length > 0) {
+          const validFiles = uploadedFiles.filter(file => file.file) as any[];
+          if (validFiles.length > 0) {
+            creativeContent = await extractCreativeText(validFiles);
+          }
+        } else if (uploadedCreative?.url) {
+          try {
+            const response = await fetch(uploadedCreative.url);
+            const html = await response.text();
+
+            creativeContent = html
+              .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+              .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+              .replace(/<!--[\s\S]*?-->/g, '')
+              .replace(/<br\s*\/?>/gi, '\n')
+              .replace(/<\/p>/gi, '\n')
+              .replace(/<\/div>/gi, '\n')
+              .replace(/<\/h[1-6]>/gi, '\n')
+              .replace(/<[^>]+>/g, '')
+              .replace(/\s+/g, ' ')
+              .replace(/\n\s*\n/g, '\n')
+              .trim();
+          } catch (error) {
+            console.error('Error fetching saved creative content:', error);
+            creativeContent = 'Creative content available but could not be extracted';
+          }
         }
       }
 
-      console.log('Creative content length:', creativeContent.length);
-      console.log('Sending request to Claude API...');
+      if (!creativeContent || creativeContent.length < 100) {
+        alert("The creative content seems too short or irrelevant for AI to generate From/Subject lines. Please upload a different creative or edit manually.");
+        return;
+      }
+
+      let creativeFileName = '';
+      let creativeIndex = null;
+      
+      if (fromSubjectNavigationContext === "multiple" && editingCreativeIndex !== null) {
+        const creative = multiCreatives[editingCreativeIndex];
+        creativeFileName = creative.fileName || `creative-${editingCreativeIndex + 1}`;
+        creativeIndex = editingCreativeIndex + 1;
+      } else if (fromSubjectNavigationContext === "single" && uploadedFiles.length > 0) {
+        creativeFileName = uploadedFiles[0].file?.name || uploadedFiles[0].displayName || 'single-creative';
+        creativeIndex = 1;
+      } else if (fromSubjectNavigationContext === "direct") {
+        creativeFileName = 'global-campaign';
+        creativeIndex = 0;
+      }
+
+      const enhancedContent = creativeContent + `
+
+---
+Creative Context:
+- File: ${creativeFileName}
+- Index: ${creativeIndex}
+- Company: ${formData.companyName}
+- Timestamp: ${new Date().toISOString()}
+- Context: ${fromSubjectNavigationContext || 'unknown'}
+`;
 
       const data = await getClaudeSuggestions({
         companyName: formData.companyName,
         offerId: formData.offerId,
         creativeType: formData.creativeType,
         notes: formData.otherRequest || '',
-        creativeContent: creativeContent || 'No creative content available'
+        creativeContent: enhancedContent,
+        creativeFileName,
+        creativeIndex: creativeIndex || undefined,
+        timestamp: new Date().toISOString()
       });
 
       console.log('Claude API response:', data);
 
-      if (data.suggestions) {
-        const suggestions = data.suggestions;
-        console.log('Raw suggestions:', suggestions);
+      if (!data.suggestions) {
+        alert('No AI suggestions were generated. Please try again.');
+        return;
+      }
+
+      const suggestions = data.suggestions;
+      console.log('🔍 Claude Suggestions Raw Output:\n', suggestions);
+
+      if (
+        suggestions.includes("I cannot responsibly suggest") ||
+        suggestions.includes("please provide more details") ||
+        suggestions.includes("No meaningful content")
+      ) {
+        alert("AI could not generate suggestions due to lack of meaningful creative content. Please upload a creative with a clear offer or message.");
+        return;
+      }
+
+      const fromLinesMatch = suggestions.match(/From.*?:\s*\n((?:\d+\.\s*[^\n]+\n?)+)/i);
+      const subjectLinesMatch = suggestions.match(/Subject.*?:\s*\n((?:\d+\.\s*[^\n]+\n?)+)/i);
+
+      const cleanList = (text: string) =>
+        text
+          .split('\n')
+          .filter(line => line.trim())
+          .map(line => line.replace(/^\d+\.\s*/, ''))
+          .join('\n');
+
+
+      let newFromLines: string[] = [];
+      let newSubjectLines: string[] = [];
+
+      if (fromLinesMatch) {
+        newFromLines = cleanList(fromLinesMatch[1]).split('\n').filter(line => line.trim());
+      }
+
+      if (subjectLinesMatch) {
+        newSubjectLines = cleanList(subjectLinesMatch[1]).split('\n').filter(line => line.trim());
+      }
+
+      let retryCount = 0;
+      const maxRetries = 2;
+      
+      while (retryCount < maxRetries) {
+        const hasDuplicates = previousSuggestions.fromLines.length > 0 || previousSuggestions.subjectLines.length > 0 
+          ? checkForDuplicates(newFromLines, newSubjectLines) 
+          : false;
         
-        const fromLinesMatch = suggestions.match(/From.*?:\s*\n((?:\d+\.\s*[^\n]+\n?)+)/i);
-        if (fromLinesMatch) {
-          const fromLines = fromLinesMatch[1]
-            .split('\n')
-            .filter((line: string) => line.trim())
-            .map((line: string) => line.replace(/^\d+\.\s*/, ''))
-            .join('\n');
-          setFromLine(fromLines);
-          console.log('Extracted From lines:', fromLines);
-        } else {
-          console.log('No From lines pattern found in suggestions');
+        if (!hasDuplicates) {
+          break;
         }
-
-        const subjectLinesMatch = suggestions.match(/Subject.*?:\s*\n((?:\d+\.\s*[^\n]+\n?)+)/i);
-        if (subjectLinesMatch) {
-          const subjectLines = subjectLinesMatch[1]
-            .split('\n')
-            .filter((line: string) => line.trim())
-            .map((line: string) => line.replace(/^\d+\.\s*/, ''))
-            .join('\n');
-          setSubjectLines(subjectLines);
-          console.log('Extracted Subject lines:', subjectLines);
-        } else {
-          console.log('No Subject lines pattern found in suggestions');
-        }
-
-        if (!fromLinesMatch && !subjectLinesMatch) {
-          const numberedLists = suggestions.match(/(\d+\.\s*[^\n]+\n?)+/g);
-          if (numberedLists && numberedLists.length >= 2) {
-            const firstList = numberedLists[0]
-              .split('\n')
-              .filter((line: string) => line.trim())
-              .map((line: string) => line.replace(/^\d+\.\s*/, ''))
-              .join('\n');
-            const secondList = numberedLists[1]
-              .split('\n')
-              .filter((line: string) => line.trim())
-              .map((line: string) => line.replace(/^\d+\.\s*/, ''))
-              .join('\n');
+        
+        retryCount++;
+        console.log(`⚠️ Duplicate suggestions detected (attempt ${retryCount}/${maxRetries}), regenerating...`);
+        
+        const duplicateWarning = `
+⚠️ DUPLICATE DETECTED: The previous suggestions were too similar to existing ones.
+Please generate COMPLETELY DIFFERENT suggestions that are unique and fresh.
+Focus on different angles, tones, and approaches for this creative.
+Avoid any lines that might be similar to previous suggestions.
+        `;
+        
+        const retryEnhancedContent = enhancedContent + duplicateWarning;
+        
+        try {
+          const retryData = await getClaudeSuggestions({
+            companyName: formData.companyName,
+            offerId: formData.offerId,
+            creativeType: formData.creativeType,
+            notes: formData.otherRequest || '',
+            creativeContent: retryEnhancedContent,
+            creativeFileName,
+            creativeIndex: creativeIndex || undefined,
+            timestamp: new Date().toISOString()
+          });
+          
+          if (retryData.suggestions) {
+            const retrySuggestions = retryData.suggestions;
             
+            const retryFromLinesMatch = retrySuggestions.match(/From.*?:\s*\n((?:\d+\.\s*[^\n]+\n?)+)/i);
+            const retrySubjectLinesMatch = retrySuggestions.match(/Subject.*?:\s*\n((?:\d+\.\s*[^\n]+\n?)+)/i);
+            
+            if (retryFromLinesMatch) {
+              newFromLines = cleanList(retryFromLinesMatch[1]).split('\n').filter(line => line.trim());
+            }
+            
+            if (retrySubjectLinesMatch) {
+              newSubjectLines = cleanList(retrySubjectLinesMatch[1]).split('\n').filter(line => line.trim());
+            }
+            
+            console.log(`✅ Retry ${retryCount} completed with ${newFromLines.length} From lines and ${newSubjectLines.length} Subject lines`);
+          }
+        } catch (retryError) {
+          console.error(`❌ Retry ${retryCount} failed:`, retryError);
+          break;
+        }
+      }
+      
+      if (retryCount > 0) {
+        const finalHasDuplicates = checkForDuplicates(newFromLines, newSubjectLines);
+        if (finalHasDuplicates) {
+          alert(`Generated ${retryCount} new sets of suggestions, but some may still be similar. Consider manual editing for complete uniqueness.`);
+        } else {
+          console.log('✅ Duplicates resolved after retry');
+        }
+      }
+
+      if (newFromLines.length > 0) {
+        const fromLinesText = newFromLines.join('\n');
+        if (fromSubjectNavigationContext === "single" || fromSubjectNavigationContext === "multiple") {
+          setModalFromLine(fromLinesText);
+        } else {
+          setFromLine(fromLinesText);
+        }
+      }
+
+      if (newSubjectLines.length > 0) {
+        const subjectLinesText = newSubjectLines.join('\n');
+        if (fromSubjectNavigationContext === "single" || fromSubjectNavigationContext === "multiple") {
+          setModalSubjectLines(subjectLinesText);
+        } else {
+          setSubjectLines(subjectLinesText);
+        }
+      }
+
+      setPreviousSuggestions(prev => ({
+        fromLines: [...prev.fromLines, ...newFromLines],
+        subjectLines: [...prev.subjectLines, ...newSubjectLines]
+      }));
+
+      if (!fromLinesMatch && !subjectLinesMatch) {
+        const numberedLists = suggestions.match(/(\d+\.\s*[^\n]+\n?)+/g);
+        if (numberedLists && numberedLists.length >= 2) {
+          const firstList = cleanList(numberedLists[0]);
+          const secondList = cleanList(numberedLists[1]);
+
+          const fallbackFromLines = firstList.split('\n').filter(line => line.trim());
+          const fallbackSubjectLines = secondList.split('\n').filter(line => line.trim());
+
+          if (previousSuggestions.fromLines.length > 0 || previousSuggestions.subjectLines.length > 0) {
+            const hasDuplicates = checkForDuplicates(fallbackFromLines, fallbackSubjectLines);
+            if (hasDuplicates) {
+              alert('Some fallback suggestions may be similar to previous ones. Consider regenerating for more variety.');
+            }
+          }
+
+          if (fromSubjectNavigationContext === "single" || fromSubjectNavigationContext === "multiple") {
+            setModalFromLine(firstList);
+            setModalSubjectLines(secondList);
+          } else {
             setFromLine(firstList);
             setSubjectLines(secondList);
-            console.log('Extracted lists as From/Subject lines');
           }
+
+          setPreviousSuggestions(prev => ({
+            fromLines: [...prev.fromLines, ...fallbackFromLines],
+            subjectLines: [...prev.subjectLines, ...fallbackSubjectLines]
+          }));
         }
-      } else {
-        console.log('No suggestions in response');
-        alert('No AI suggestions were generated. Please try again.');
       }
+
     } catch (error) {
       console.error('AI suggestion error:', error);
       alert(`Failed to get AI suggestions: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -379,15 +575,94 @@ export const useCreativeForm = () => {
     setIsSubmitting(true);
     
     try {
-      const creativeUrls = uploadedFiles.map(item => item.originalUrl).filter(Boolean) as string[];
-      if (uploadedCreative?.url) {
-        creativeUrls.push(uploadedCreative.url);
+      const submissionPayload = {
+        offer_id: formData.offerId,
+        priority,
+        contact_method: 'email',
+        contact_info: formData.contactEmail,
+        from_lines: fromLine || formData.fromLine,
+        subject_lines: subjectLines || formData.subjectLines,
+        other_request: formData.otherRequest,
+        creatives: [] as Array<{
+          file_url: string;
+          file_key: string;
+          original_filename: string;
+          creative_from_lines: string | null;
+          creative_subject_lines: string | null;
+          creative_notes: string | null;
+          creative_html_code: string | null;
+        }>
+      };
+
+      multiCreatives.forEach((creative, index) => {
+        console.log(`🔧 Creative ${index}:`, {
+          fromLine: creative.fromLine,
+          subjectLine: creative.subjectLine,
+          notes: creative.notes
+        });
+      });
+
+      
+      if (uploadedCreative) {
+        submissionPayload.creatives.push({
+          file_url: uploadedCreative.url || '',
+          file_key: uploadedCreative.name || 'creative',
+          original_filename: uploadedCreative.name || 'creative',
+          creative_from_lines: modalFromLine || null, 
+          creative_subject_lines: modalSubjectLines || null, 
+          creative_notes: creativeNotes || null,
+          creative_html_code: htmlCode || null
+        });
       }
 
-      const result = await submitForm(formData, creativeUrls, multiCreatives, priority);
+      
+      if (multiCreatives.length > 0) {
+        multiCreatives.forEach((creative, index) => {
+          submissionPayload.creatives.push({
+            file_url: creative.imageUrl || '',
+            file_key: `creative_${index + 1}`,
+            original_filename: `creative_${index + 1}`,
+            creative_from_lines: creative.fromLine || null,
+            creative_subject_lines: creative.subjectLine || null,
+            creative_notes: creative.notes || null,
+            creative_html_code: creative.htmlContent || null
+          });
+        });
+      }
+
+      
+      console.log("🔧 Submitting with payload:", {
+        from_lines: submissionPayload.from_lines,
+        subject_lines: submissionPayload.subject_lines,
+        fromLine_state: fromLine,
+        formData_fromLine: formData.fromLine,
+        subjectLines_state: subjectLines,
+        formData_subjectLines: formData.subjectLines,
+        fromLine_length: fromLine?.length || 0,
+        formData_fromLine_length: formData.fromLine?.length || 0,
+        subjectLines_length: subjectLines?.length || 0,
+        formData_subjectLines_length: formData.subjectLines?.length || 0
+      });
+
+      const res = await fetch("/api/submissions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(submissionPayload)
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to save submission');
+      }
+
+      const result = await res.json();
       setTrackingLink(result.trackingLink);
       setIsSubmitting(false);
       setIsSubmitted(true);
+      
+      setTimeout(() => {
+        handleResetForm();
+      }, 2000);
     } catch (error) {
       console.error(error);
       alert(
@@ -401,6 +676,7 @@ export const useCreativeForm = () => {
     uploadedFiles.forEach((f) => {
       if (f.previewUrl) URL.revokeObjectURL(f.previewUrl);
     });
+    
     setIsSubmitted(false);
     setStep(1);
     setFormData({
@@ -419,31 +695,75 @@ export const useCreativeForm = () => {
     setUploadedFiles([]);
     setTrackingLink("");
     setErrors({});
+    
+    setFromLine("");
+    setSubjectLines("");
+    setModalFromLine("");
+    setModalSubjectLines("");
+    
+    setUploadedCreative(null);
+    setMultiCreatives([]);
+    setCreativeNotes("");
+    setHtmlCode("");
+    setModalOpen(false);
+    setSelectedOption("");
+    setUploadType(null);
+    setFromSubjectNavigationContext(null);
+    
+    setTempFileKey(null);
+    setOriginalZipFileName("");
+    setEditingCreativeIndex(null);
+    setSavedMultiCreatives([]);
+    setIsZipProcessing(false);
+    setZipError(null);
+    setPreviewedCreative(null);
+    setPreviewImage(null);
+    
+    setIsCodeMaximized(false);
+    setIsCodeMinimized(false);
+    setIsRenaming(false);
+    setTempFileName("");
+    setIsDragOver(false);
+    setIsUploading(false);
+    setAiLoading(false);
+    setTelegramCheckStatus("unchecked");
+    
+    setPriority("Moderate");
   };
 
   const openModal = (option: string, preserveExisting = false) => {
+    
     setSelectedOption(option);
+    
     if (option === "Single Creative") {
       setUploadType("single");
     } else if (option === "Multiple Creatives") {
       setUploadType("multiple");
     } else {
-      setUploadType(null);
+      if (option !== "From & Subject Lines") {
+        setUploadType(null);
+      }
     }
 
-    if (option === "From & Subject Lines") {
-      setFromLine(formData.fromLine || "");
-      setSubjectLines(formData.subjectLines || "");
+      if (option === "From & Subject Lines") {
+    setFromLine(fromLine || formData.fromLine || "");
+    setSubjectLines(subjectLines || formData.subjectLines || "");
+    
+    if (fromSubjectNavigationContext === null) {
+      const hasActiveUploads = uploadedFiles.length > 0 || multiCreatives.length > 0;
+      const hasActiveUploadType = uploadType === "single" || uploadType === "multiple";
       
-      // Track navigation context for back button logic
-      if (uploadType === "single" && uploadedFiles.length > 0) {
+      
+      if (uploadType === "single" && uploadedFiles.length > 0 && hasActiveUploads) {
         setFromSubjectNavigationContext("single");
-      } else if (uploadType === "multiple" && multiCreatives.length > 0) {
+      } else if (uploadType === "multiple" && multiCreatives.length > 0 && hasActiveUploads) {
         setFromSubjectNavigationContext("multiple");
       } else {
         setFromSubjectNavigationContext("direct");
       }
+    } else {
     }
+  }
 
     if (!preserveExisting && option !== "From & Subject Lines") {
       setUploadedFiles([]);
@@ -466,7 +786,6 @@ export const useCreativeForm = () => {
 
   const deleteCreative = async (fileName: string, fileUrl?: string) => {
     try {
-      // If we have a fileUrl, delete from blob storage
       if (fileUrl) {
         await fetch(`/api/creative/delete`, {
           method: "POST",
@@ -475,7 +794,6 @@ export const useCreativeForm = () => {
         });
       }
       
-      // Clear the uploaded creative from state
       setUploadedCreative(null);
       setTempFileKey(null);
       
@@ -518,13 +836,25 @@ export const useCreativeForm = () => {
       setIsUploading(false);
     }
 
-    setModalOpen(false);
-    setSelectedOption("");
-    setUploadType(null);
+    if (fromSubjectNavigationContext === "multiple") {
+      setSelectedOption("Multiple Creatives");
+      setUploadType("multiple");
+    } else {
+      setModalOpen(false);
+      setSelectedOption("");
+      setUploadType(null);
+    }
+    
     setIsDragOver(false);
     setFromSubjectNavigationContext(null);
 
-    if (selectedOption !== "From & Subject Lines") {
+    if (selectedOption === "From & Subject Lines" || fromSubjectNavigationContext === "direct") {
+      setFormData(prev => ({
+        ...prev,
+        fromLine: fromLine || prev.fromLine,
+        subjectLines: subjectLines || prev.subjectLines
+      }));
+    } else {
       setFromLine("");
       setSubjectLines("");
     }
@@ -650,30 +980,34 @@ export const useCreativeForm = () => {
       }
 
       if (editingCreativeIndex !== null) {
+        
         const updated = [...multiCreatives];
+        const currentCreative = updated[editingCreativeIndex];
+
+        const updatedCreative = {
+          ...currentCreative,
+          fromLine: modalFromLine,
+          subjectLine: modalSubjectLines,
+          notes: creativeNotes,
+        };
 
         if (uploadedFiles[0]?.isHtml && htmlCode) {
-          updated[editingCreativeIndex] = {
-            ...updated[editingCreativeIndex],
-            htmlContent: htmlCode,
-          };
-        } else if (
-          !uploadedFiles[0]?.isHtml &&
-          uploadedFiles[0]?.previewUrl
-        ) {
-          updated[editingCreativeIndex] = {
-            ...updated[editingCreativeIndex],
-            imageUrl: uploadedFiles[0].previewUrl,
-          };
+          updatedCreative.htmlContent = htmlCode;
+        } else if (!uploadedFiles[0]?.isHtml && uploadedFiles[0]?.previewUrl) {
+          updatedCreative.imageUrl = uploadedFiles[0].previewUrl;
         }
 
+        updated[editingCreativeIndex] = updatedCreative;
         setMultiCreatives(updated);
+        
         setEditingCreativeIndex(null);
-
         setUploadType("multiple");
         setSelectedOption("Multiple Creatives");
         setUploadedFiles([]);
         setHtmlCode("");
+        setModalFromLine("");
+        setModalSubjectLines("");
+        setCreativeNotes("");
       } else {
         setUploadedCreative({
           name:
@@ -692,27 +1026,22 @@ export const useCreativeForm = () => {
   };
 
   const handleEditCreative = (creative: MultiCreative) => {
-    // Find the index of the creative in the multiCreatives array
     const creativeIndex = multiCreatives.findIndex(c => c.id === creative.id);
     if (creativeIndex !== -1) {
       setEditingCreativeIndex(creativeIndex);
       
-      // Create an UploadedFile object from the MultiCreative
       const uploadedFile: UploadedFile = {
-        file: new File([], `creative-${creativeIndex + 1}`, { type: creative.type === "html" ? "text/html" : "image/png" }), // Create a dummy file
+        file: new File([], `creative-${creativeIndex + 1}`, { type: creative.type === "html" ? "text/html" : "image/png" }),
         previewUrl: creative.imageUrl,
         displayName: `creative-${creativeIndex + 1}`,
         isHtml: creative.type === "html"
       };
 
-      // Set the uploaded files to show the selected creative
       setUploadedFiles([uploadedFile]);
       
-      // If it's an HTML creative, set the HTML code
       if (creative.type === "html" && creative.htmlContent) {
         setHtmlCode(creative.htmlContent);
       } else if (creative.type === "html") {
-        // If we don't have the HTML code, try to fetch it from the URL
         fetch(creative.imageUrl)
           .then(response => response.text())
           .then(html => {
@@ -724,29 +1053,19 @@ export const useCreativeForm = () => {
           });
       }
 
-      // Set creative notes if available
-      if (creative.notes) {
-        setCreativeNotes(creative.notes);
-      }
+      setCreativeNotes(creative.notes || "");
+      setModalFromLine(creative.fromLine || "");
+      setModalSubjectLines(creative.subjectLine || "");
 
-      // Set from line and subject lines if available
-      if (creative.fromLine) {
-        setModalFromLine(creative.fromLine);
-      }
-      if (creative.subjectLine) {
-        setModalSubjectLines(creative.subjectLine);
-      }
-
-      // Open the single upload modal
+      setFromSubjectNavigationContext("multiple");
+      
       setUploadType("single");
       setModalOpen(true);
       
-      console.log('Editing creative:', creative);
     }
   };
 
   const handleBackToMultiple = () => {
-    // Go back to multiple upload view
     setUploadType("multiple");
     setEditingCreativeIndex(null);
     setUploadedFiles([]);
@@ -756,27 +1075,47 @@ export const useCreativeForm = () => {
     setModalSubjectLines("");
     setPreviewImage(null);
     setPreviewedCreative(null);
+    setFromSubjectNavigationContext(null);
+    
   };
 
   const handleBackToSingle = () => {
-    // Handle back navigation based on context
+    
     if (fromSubjectNavigationContext === "single") {
-      // Go back to single creative details page
-      setSelectedOption("");
+      setSelectedOption("Single Creative");
+      setUploadType("single");
+      setModalOpen(true);
     } else if (fromSubjectNavigationContext === "multiple") {
-      // Go back to single creative details page (from multiple edit)
+      setSelectedOption("Single Creative");
+      setUploadType("single");
+      
+      if (editingCreativeIndex !== null) {
+        setModalOpen(true);
+      } else {
+        setModalOpen(false);
+        setSelectedOption("");
+        setUploadType(null);
+      }
+    } else if (fromSubjectNavigationContext === "direct") {
+      setFormData(prev => ({
+        ...prev,
+        fromLine: fromLine || prev.fromLine,
+        subjectLines: subjectLines || prev.subjectLines
+      }));
+      
+      setModalOpen(false);
       setSelectedOption("");
+      setUploadType(null);
     } else {
-      // Direct access - close modal
       setModalOpen(false);
       setSelectedOption("");
       setUploadType(null);
     }
+
     setFromSubjectNavigationContext(null);
   };
 
   return {
-    // State
     step,
     errors,
     formData,
@@ -817,8 +1156,8 @@ export const useCreativeForm = () => {
     isUploading,
     telegramCheckStatus,
     fromSubjectNavigationContext,
+    previousSuggestions,
 
-    // Setters
     setStep,
     setErrors,
     setFormData,
@@ -858,8 +1197,9 @@ export const useCreativeForm = () => {
     setAiLoading,
     setIsUploading,
     setTelegramCheckStatus,
+    setFromSubjectNavigationContext,
+    setPreviousSuggestions,
 
-    // Methods
     handleInputChange,
     handleTelegramBlur,
     enhanceWithClaude,
@@ -881,4 +1221,4 @@ export const useCreativeForm = () => {
     handleBackToSingle,
     formatFileSize,
   };
-}; 
+};

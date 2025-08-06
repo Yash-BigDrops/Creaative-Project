@@ -2,69 +2,96 @@ import { NextResponse } from 'next/server';
 
 export async function POST(request: Request) {
   try {
-    console.log('Claude API endpoint called');
     
-    const { companyName, offerId, creativeType, notes, creativeContent } = await request.json();
+    const { 
+      companyName, 
+      offerId, 
+      creativeType, 
+      notes, 
+      creativeContent,
+      creativeFileName,
+      creativeIndex,
+      timestamp
+    } = await request.json();
     
-    console.log('Request data:', {
-      companyName: companyName?.substring(0, 50) + '...',
-      offerId,
-      creativeType,
-      notesLength: notes?.length || 0,
-      creativeContentLength: creativeContent?.length || 0
-    });
+
 
     if (!companyName || !offerId) {
-      console.error('Missing required fields:', { companyName: !!companyName, offerId: !!offerId });
       return NextResponse.json({ error: 'Missing required fields: companyName and offerId are required' }, { status: 400 });
     }
 
     if (!process.env.CLAUDE_API_KEY) {
-      console.error('CLAUDE_API_KEY not configured');
       return NextResponse.json({ error: 'Claude API key not configured' }, { status: 500 });
     }
 
+    const currentTimestamp = timestamp || new Date().toISOString();
+    const creativeContext = creativeFileName ? `Creative: ${creativeFileName}` : 'Creative: Unnamed';
+    const indexContext = creativeIndex ? `(Index: ${creativeIndex})` : '';
+    
     const prompt = `
-You are an expert in crafting engaging and high-converting email "From" and "Subject" lines.
+You are an expert email marketer specializing in high-converting email campaigns.
 
-Campaign details:
+🎯 CAMPAIGN DETAILS:
 - Company: ${companyName}
 - Offer ID: ${offerId}
-- Creative type: ${creativeType || 'N/A'}
-- Notes: ${notes || 'N/A'}
+- Creative Type: ${creativeType || "N/A"}
+- Creative File: ${creativeContext} ${indexContext}
+- Request Time: ${currentTimestamp}
+- Notes: ${notes || "None"}
 
-Here is the creative content for context:
+📄 CREATIVE CONTENT:
 """
-${creativeContent || 'No creative text provided'}
+${creativeContent || "No meaningful content was extracted from the creative. This appears to be only footer/unsubscribe content."}
 """
 
-Task:
-1. Suggest 5 professional "From" lines.
-2. Suggest 10 high-converting "Subject" lines.
+⚠️ CRITICAL REQUIREMENTS:
+1. Generate suggestions that are SPECIFIC to THIS creative's content and style
+2. Avoid generic, one-size-fits-all suggestions
+3. Each suggestion should reflect the unique elements of this creative
+4. Ensure suggestions are brand-safe and non-clickbaity
+5. Make suggestions compelling and engaging for the target audience
 
-Please format your response exactly as follows:
+Please suggest:
+1. 15 unique, brand-safe, non-clickbaity "From" lines
+2. 15 compelling, engaging "Subject" lines
+
+Format your response EXACTLY as follows:
 
 From Lines:
-1. [First from line suggestion]
-2. [Second from line suggestion]
-3. [Third from line suggestion]
-4. [Fourth from line suggestion]
-5. [Fifth from line suggestion]
+1. ...
+2. ...
+3. ...
+4. ...
+5. ...
+6. ...
+7. ...
+8. ...
+9. ...
+10. ...
+11. ...
+12. ...
+13. ...
+14. ...
+15. ...
 
 Subject Lines:
-1. [First subject line suggestion]
-2. [Second subject line suggestion]
-3. [Third subject line suggestion]
-4. [Fourth subject line suggestion]
-5. [Fifth subject line suggestion]
-6. [Sixth subject line suggestion]
-7. [Seventh subject line suggestion]
-8. [Eighth subject line suggestion]
-9. [Ninth subject line suggestion]
-10. [Tenth subject line suggestion]
+1. ...
+2. ...
+3. ...
+4. ...
+5. ...
+6. ...
+7. ...
+8. ...
+9. ...
+10. ...
+11. ...
+12. ...
+13. ...
+14. ...
+15. ...
     `;
 
-    console.log('Sending request to Claude API...');
     
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -80,11 +107,9 @@ Subject Lines:
       })
     });
 
-    console.log('Claude API response status:', response.status);
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Claude API error response:', errorText);
       return NextResponse.json({ 
         error: `Claude API error: ${response.status} ${response.statusText}`,
         details: errorText
@@ -92,19 +117,15 @@ Subject Lines:
     }
 
     const data = await response.json();
-    console.log('Claude API response received');
     
     const text = data?.content?.[0]?.text;
     if (!text) {
-      console.error('No text content in Claude response:', data);
       return NextResponse.json({ error: 'No suggestions generated from Claude API' }, { status: 500 });
     }
 
-    console.log('Suggestions generated successfully, length:', text.length);
     return NextResponse.json({ suggestions: text });
     
   } catch (error) {
-    console.error('Claude API error:', error);
     return NextResponse.json({ 
       error: 'Claude API request failed',
       details: error instanceof Error ? error.message : 'Unknown error'

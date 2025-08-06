@@ -31,7 +31,6 @@ export async function GET(request: Request) {
       await del(keysToDelete);
     }
 
-    // Delete submissions one by one since sql.array() is not available
     for (const id of idsToDelete) {
       await sql`DELETE FROM submissions WHERE id = ${id}`;
     }
@@ -39,7 +38,7 @@ export async function GET(request: Request) {
       message: `Deleted ${idsToDelete.length} old submissions.`,
     });
   } catch (error) {
-    console.error("Cron job error:", error);
+
     return NextResponse.json({ error: "Cron job failed." }, { status: 500 });
   }
 }

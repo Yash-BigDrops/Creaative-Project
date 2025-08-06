@@ -18,7 +18,6 @@ interface SingleUploadModalProps {
   htmlCode: string;
   isCodeMaximized: boolean;
   isCodeMinimized: boolean;
-  isRenaming: boolean;
   tempFileName: string;
   creativeNotes: string;
   modalFromLine: string;
@@ -28,7 +27,6 @@ interface SingleUploadModalProps {
   setHtmlCode: (code: string) => void;
   setIsCodeMaximized: (maximized: boolean) => void;
   setIsCodeMinimized: (minimized: boolean) => void;
-  setIsRenaming: (renaming: boolean) => void;
   setTempFileName: (name: string) => void;
   setCreativeNotes: (notes: string) => void;
   setModalFromLine: (line: string) => void;
@@ -39,6 +37,9 @@ interface SingleUploadModalProps {
   closeModal: () => void;
   saveCreative: () => void;
   isFromMultiple?: boolean;
+  setUploadType: (type: "single" | "multiple") => void;
+  setEditingCreativeIndex: (index: number | null) => void;
+  setFromSubjectNavigationContext?: (context: "direct" | "single" | "multiple" | null) => void;
 }
 
 export default function SingleUploadModal({
@@ -46,7 +47,6 @@ export default function SingleUploadModal({
   htmlCode,
   isCodeMaximized,
   isCodeMinimized,
-  isRenaming,
   tempFileName,
   creativeNotes,
   modalFromLine,
@@ -56,7 +56,6 @@ export default function SingleUploadModal({
   setHtmlCode,
   setIsCodeMaximized,
   setIsCodeMinimized,
-  setIsRenaming,
   setTempFileName,
   setCreativeNotes,
   setModalFromLine,
@@ -67,7 +66,18 @@ export default function SingleUploadModal({
   closeModal,
   saveCreative,
   isFromMultiple,
+  setUploadType,
+  setEditingCreativeIndex,
+  setFromSubjectNavigationContext,
 }: SingleUploadModalProps) {
+  
+  const handleFromSubjectClick = () => {
+    if (setFromSubjectNavigationContext) {
+      setFromSubjectNavigationContext(isFromMultiple ? "multiple" : "single");
+    }
+    openModal("From & Subject Lines");
+  };
+
   return (
     <div className="flex flex-col lg:flex-row gap-4 sm:gap-6 modal-content">
 
@@ -165,13 +175,13 @@ export default function SingleUploadModal({
             </div>
           </div>
         ) : (
-                        <div className="flex items-center justify-center h-full text-muted-foreground">
-                <div className="text-center">
-                  {uploadedFiles[0]?.file?.name?.endsWith(".zip") ? (
-                    <Archive className="w-12 h-12 mx-auto mb-3 text-muted-foreground" />
-                  ) : (
-                    <FileText className="w-12 h-12 mx-auto mb-3 text-muted-foreground" />
-                  )}
+          <div className="flex items-center justify-center h-full text-muted-foreground">
+            <div className="text-center">
+              {uploadedFiles[0]?.file?.name?.endsWith(".zip") ? (
+                <Archive className="w-12 h-12 mx-auto mb-3 text-muted-foreground" />
+              ) : (
+                <FileText className="w-12 h-12 mx-auto mb-3 text-muted-foreground" />
+              )}
               <p>
                 {uploadedFiles[0]?.file?.name?.endsWith(".zip")
                   ? "ZIP File Uploaded"
@@ -189,7 +199,7 @@ export default function SingleUploadModal({
           </h3>
           <div className="text-sm mb-1 flex items-center">
             <Label className="font-medium">Name:</Label>
-            {isRenaming ? (
+              {tempFileName ? (
               <Input
                 type="text"
                 value={tempFileName}
@@ -204,7 +214,6 @@ export default function SingleUploadModal({
                       }))
                     );
                   }
-                  setIsRenaming(false);
                   setTempFileName("");
                 }}
                 onKeyDown={(e) => {
@@ -218,7 +227,6 @@ export default function SingleUploadModal({
                         }))
                       );
                     }
-                    setIsRenaming(false);
                     setTempFileName("");
                   }
                 }}
@@ -234,14 +242,13 @@ export default function SingleUploadModal({
                     uploadedFiles[0]?.file?.name ||
                       "creative.html"
                   );
-                  setIsRenaming(true);
                 }}
               >
                 {uploadedFiles[0]?.displayName || uploadedFiles[0]?.file?.name || "creative.html"}
               </span>
             )}
 
-            {!isRenaming ? (
+            {!tempFileName ? (
               <Button
                 type="button"
                 onClick={() => {
@@ -250,7 +257,6 @@ export default function SingleUploadModal({
                     uploadedFiles[0]?.file?.name ||
                       "creative.html"
                   );
-                  setIsRenaming(true);
                 }}
                 variant="ghost"
                 size="sm"
@@ -281,7 +287,6 @@ export default function SingleUploadModal({
                     );
                   }
                   
-                  setIsRenaming(false);
                   setTempFileName("");
                 }}
                 variant="ghost"
@@ -370,19 +375,21 @@ export default function SingleUploadModal({
                         HTML Code (Fullscreen)
                       </h3>
                       <div className="flex gap-2">
-                        <Button
-                          type="button"
-                          onClick={() => {
-                            setIsCodeMaximized(false);
-                            setIsCodeMinimized(true);
-                          }}
-                          variant="outline"
-                          size="sm"
-                          className="p-2 rounded"
-                          title="Minimize to small view"
-                        >
-                          <Minimize2 className="h-4 w-4" />
-                        </Button>
+                        {!isCodeMaximized && (
+                          <Button
+                            type="button"
+                            onClick={() => {
+                              setIsCodeMaximized(false);
+                              setIsCodeMinimized(true);
+                            }}
+                            variant="outline"
+                            size="sm"
+                            className="p-2 rounded"
+                            title="Minimize to small view"
+                          >
+                            <Minimize2 className="h-4 w-4" />
+                          </Button>
+                        )}
                         <Button
                           type="button"
                           onClick={() => setIsCodeMaximized(false)}
@@ -486,7 +493,7 @@ export default function SingleUploadModal({
           
           <Button
             type="button"
-            onClick={() => openModal("From & Subject Lines")}
+            onClick={handleFromSubjectClick}
             variant="outline"
             className="flex items-center justify-center gap-2 w-full mb-6"
           >
@@ -509,7 +516,13 @@ export default function SingleUploadModal({
         </div>
 
         <Button
-          onClick={saveCreative}
+          onClick={() => {
+            saveCreative();
+            if (isFromMultiple) {
+              setUploadType("multiple");
+              setEditingCreativeIndex(null);
+            }
+          }}
           className="mt-6 w-full py-3 transition-all duration-300 active:scale-95"
           size="lg"
         >
@@ -518,4 +531,4 @@ export default function SingleUploadModal({
       </div>
     </div>
   );
-} 
+}
