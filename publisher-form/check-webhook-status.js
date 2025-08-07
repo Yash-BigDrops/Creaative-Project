@@ -38,22 +38,32 @@ function getWebhookInfo() {
 
 async function checkWebhookStatus() {
   try {
+    console.log('🔍 Checking Telegram webhook status...');
     const webhookInfo = await getWebhookInfo();
     
     if (webhookInfo.ok) {
       const info = webhookInfo.result;
-      
-      
+      console.log('✅ Webhook info retrieved successfully');
+      console.log('📋 Webhook URL:', info.url || 'Not set');
+      console.log('📊 Pending updates:', info.pending_update_count);
+      console.log('🔄 Last error date:', info.last_error_date);
+      console.log('❌ Last error message:', info.last_error_message);
       
       if (!info.url) {
+        console.log('⚠️ No webhook URL is set!');
       } else if (info.last_error_message) {
+        console.log('❌ Webhook has errors:', info.last_error_message);
       } else if (info.pending_update_count > 0) {
+        console.log('📥 There are pending updates to process');
       } else {
+        console.log('✅ Webhook is working correctly');
       }
     } else {
+      console.log('❌ Failed to get webhook info:', webhookInfo.description);
     }
     
   } catch (error) {
+    console.log('❌ Error checking webhook status:', error.message);
   }
 }
 

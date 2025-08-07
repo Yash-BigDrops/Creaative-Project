@@ -86,8 +86,10 @@ export async function POST(request: Request) {
     const telegramBotToken = process.env.TELEGRAM_BOT_TOKEN;
 
     if (telegramBotToken && telegramId && telegramId.trim() !== '') {
+      console.log('📱 Telegram notification requested for user:', telegramId);
       try {
         const username = telegramId.trim().replace(/^@/, ''); 
+        console.log('🔍 Looking up user in database:', username);
         
         const result = await sql`
           SELECT chat_id, first_name 
@@ -96,9 +98,11 @@ export async function POST(request: Request) {
         `;
         
         if (result.rows.length === 0) {
+          console.log('❌ User not found in database:', username);
         } else {
           const user = result.rows[0];
           const chatId = user.chat_id;
+          console.log('✅ User found, chat ID:', chatId);
           
           const userMessage = `
 <b>Your Submission Has Been Received!</b>
@@ -115,6 +119,7 @@ export async function POST(request: Request) {
 You can use this link to track the status of your submission.
           `;
           
+          console.log('📤 Sending Telegram notification to chat ID:', chatId);
           const telegramApiUrl = `https://api.telegram.org/bot${telegramBotToken}/sendMessage`;
           const response = await fetch(telegramApiUrl, {
             method: "POST",
@@ -127,16 +132,24 @@ You can use this link to track the status of your submission.
           });
           
           const responseData = await response.json();
+          console.log('📤 Telegram API response:', responseData);
           
           if (response.ok && responseData.ok) {
+            console.log('✅ Telegram notification sent successfully');
           } else {
+            console.log('❌ Failed to send Telegram notification:', responseData.description);
             if (responseData.error_code === 400 && responseData.description.includes("chat not found")) {
+              console.log('💡 Chat not found - user may have blocked the bot or deleted the chat');
             }
           }
         }
       } catch (exception) {
+        console.log('❌ Error sending Telegram notification:', exception);
       }
     } else if (telegramBotToken) {
+      console.log('📱 No Telegram ID provided, skipping notification');
+    } else {
+      console.log('📱 Telegram bot token not configured');
     }
 
     return NextResponse.json({ success: true, url: primaryUrl, trackingLink: trackingLink });
