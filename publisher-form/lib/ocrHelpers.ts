@@ -13,6 +13,15 @@ type UploadedFile = {
 export type OCRWord = { text: string; bbox: { x0: number; y0: number; x1: number; y1: number } };
 export type OCRResult = { text: string; words: OCRWord[]; width: number; height: number };
 
+// Tesseract result types
+type TesseractWord = { text: string; bbox: { x0: number; y0: number; x1: number; y1: number } };
+type TesseractResult = { 
+  text: string; 
+  words?: TesseractWord[]; 
+  imageDims?: { width: number; height: number };
+  lines?: Array<{ baseline?: { x1: number } }>;
+};
+
 export async function extractCreativeText(
   uploadedFiles: UploadedFile[]
 ): Promise<string> {
@@ -86,12 +95,13 @@ export async function extractCreativeWithBoxes(
           logger: (m) => console.log("OCR:", m.status)
         });
         const extractedText = result.data.text || "";
-        const words = (result.data as any).words?.map((w: any) => ({
+        const tesseractData = result.data as TesseractResult;
+        const words = tesseractData.words?.map((w) => ({
           text: w.text,
           bbox: { x0: w.bbox.x0, y0: w.bbox.y0, x1: w.bbox.x1, y1: w.bbox.y1 }
         })) || [];
-        const width = (result.data as any).imageDims?.width ?? (result.data as any).lines?.[0]?.baseline?.x1 ?? 0;
-        const height = (result.data as any).imageDims?.height ?? 0;
+        const width = tesseractData.imageDims?.width ?? tesseractData.lines?.[0]?.baseline?.x1 ?? 0;
+        const height = tesseractData.imageDims?.height ?? 0;
         return { text: extractedText, words, width, height };
       }
 
@@ -99,12 +109,13 @@ export async function extractCreativeWithBoxes(
         logger: (m) => console.log("OCR:", m.status),
       });
       const extractedText = result.data.text || "";
-      const words = (result.data as any).words?.map((w: any) => ({
+      const tesseractData = result.data as TesseractResult;
+      const words = tesseractData.words?.map((w) => ({
         text: w.text,
         bbox: { x0: w.bbox.x0, y0: w.bbox.y0, x1: w.bbox.x1, y1: w.bbox.y1 }
       })) || [];
-      const width = (result.data as any).imageDims?.width ?? (result.data as any).lines?.[0]?.baseline?.x1 ?? 0;
-      const height = (result.data as any).imageDims?.height ?? 0;
+      const width = tesseractData.imageDims?.width ?? tesseractData.lines?.[0]?.baseline?.x1 ?? 0;
+      const height = tesseractData.imageDims?.height ?? 0;
       return { text: extractedText, words, width, height };
     } catch (error) {
       console.error("❌ Error extracting text from image:", error);

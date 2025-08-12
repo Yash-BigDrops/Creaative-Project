@@ -129,7 +129,7 @@ export default function MultipleUploadModal({
   const groupOverlapping = (edits: {start: number; end: number; suggestion: string; reason?: string}[]) => {
     const out: {start: number; end: number; label: string}[] = [];
     const arr = [...edits].sort((a,b)=> a.start - b.start || a.end - b.end);
-    let cur: any = null;
+    let cur: {start: number; end: number; label: string} | null = null;
     for (const e of arr) {
       const label = e.reason ? `${e.suggestion} (${e.reason})` : e.suggestion;
       if (!cur || e.start > cur.end) {
@@ -270,12 +270,16 @@ export default function MultipleUploadModal({
         console.log("Proofreading results:", results);
 
         // Apply highlights
+        if (!iframe.contentDocument) {
+          console.error("Iframe contentDocument is null");
+          return;
+        }
         results.forEach((r, bi) => {
           if (!r?.edits?.length) return;
-          const { map } = mapElementTextNodes(blocks[bi].el, iframe.contentDocument);
+          const { map } = mapElementTextNodes(blocks[bi].el, iframe.contentDocument!);
           const grouped = groupOverlapping(r.edits);
           grouped.forEach(g =>
-            wrapReadonly(iframe.contentDocument, map, g.start, g.end, g.label)
+            wrapReadonly(iframe.contentDocument!, map, g.start, g.end, g.label)
           );
         });
 
@@ -297,7 +301,8 @@ export default function MultipleUploadModal({
         console.log("Processing image creative");
         // Image creative - use OCR
         try {
-          const textToCheck = await extractCreativeText([{ imageUrl: creative.imageUrl }] as any);
+          const mockFile = { imageUrl: creative.imageUrl, file: undefined, isHtml: false, previewUrl: creative.imageUrl, extractedContent: undefined } as any;
+          const textToCheck = await extractCreativeText([mockFile]);
           console.log("OCR extracted text:", textToCheck);
           
           if (!textToCheck || !textToCheck.trim()) {

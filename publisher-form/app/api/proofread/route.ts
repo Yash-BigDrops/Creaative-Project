@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
     }
 
     const prompt = `
-You are a professional copy editor. Review the text for:
+You are a professional copy editor with an experience of 10+ years. Review the text for:
 - spelling
 - grammar (subject–verb agreement, tense, punctuation)
 - clarity/conciseness (light)
@@ -68,8 +68,8 @@ Text:
     }
 
     return NextResponse.json(parsed);
-  } catch (e: any) {
-    return NextResponse.json({ error: e?.message || "Unknown error" }, { status: 500 });
+  } catch (e: unknown) {
+    return NextResponse.json({ error: e instanceof Error ? e.message : "Unknown error" }, { status: 500 });
   }
 }
 
