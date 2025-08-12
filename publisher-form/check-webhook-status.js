@@ -1,6 +1,8 @@
+require('dotenv').config({ path: '.env.development.local' });
+
 const https = require('https');
 
-const BOT_TOKEN = '8270513237:AAFDQKccnayiW8CiWyHLtBXjriZ8e7k4QBQ';
+const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 
 function getWebhookInfo() {
   return new Promise((resolve, reject) => {

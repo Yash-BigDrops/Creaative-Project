@@ -10,10 +10,20 @@ type UploadedFile = {
   extractedContent?: string;
 };
 
+export type OCRWord = { text: string; bbox: { x0: number; y0: number; x1: number; y1: number } };
+export type OCRResult = { text: string; words: OCRWord[]; width: number; height: number };
+
 export async function extractCreativeText(
   uploadedFiles: UploadedFile[]
 ): Promise<string> {
-  if (uploadedFiles.length === 0) return "";
+  const result = await extractCreativeWithBoxes(uploadedFiles);
+  return result.text;
+}
+
+export async function extractCreativeWithBoxes(
+  uploadedFiles: UploadedFile[]
+): Promise<OCRResult> {
+  if (uploadedFiles.length === 0) return { text: "", words: [], width: 0, height: 0 };
 
   const file = uploadedFiles[0];
 
@@ -40,7 +50,7 @@ export async function extractCreativeText(
         });
         const ocrText = ocrResult.data.text.trim();
         if (ocrText.length > 0) {
-          return ocrText;
+          return { text: ocrText, words: [], width: 0, height: 0 };
         }
       }
 
@@ -57,18 +67,18 @@ export async function extractCreativeText(
         .replace(/\n\s*\n/g, '\n')
         .trim();
 
-      return cleanedText;
+      return { text: cleanedText, words: [], width: 0, height: 0 };
 
     } catch (error) {
       console.error("❌ Error processing HTML preview for OCR:", error);
-      return "";
+      return { text: "", words: [], width: 0, height: 0 };
     }
   }
 
   if (file.file && file.file.type.startsWith("image/")) {
     try {
       if (file.file.size < 1024 || file.file.size > 50 * 1024 * 1024) {
-        return "";
+        return { text: "", words: [], width: 0, height: 0 };
       }
 
       if (file.previewUrl) {
@@ -76,24 +86,35 @@ export async function extractCreativeText(
           logger: (m) => console.log("OCR:", m.status)
         });
         const extractedText = result.data.text || "";
-        return extractedText;
+        const words = (result.data as any).words?.map((w: any) => ({
+          text: w.text,
+          bbox: { x0: w.bbox.x0, y0: w.bbox.y0, x1: w.bbox.x1, y1: w.bbox.y1 }
+        })) || [];
+        const width = (result.data as any).imageDims?.width ?? (result.data as any).lines?.[0]?.baseline?.x1 ?? 0;
+        const height = (result.data as any).imageDims?.height ?? 0;
+        return { text: extractedText, words, width, height };
       }
 
       const result = await Tesseract.recognize(file.file, "eng", {
         logger: (m) => console.log("OCR:", m.status),
       });
       const extractedText = result.data.text || "";
-      return extractedText;
-
+      const words = (result.data as any).words?.map((w: any) => ({
+        text: w.text,
+        bbox: { x0: w.bbox.x0, y0: w.bbox.y0, x1: w.bbox.x1, y1: w.bbox.y1 }
+      })) || [];
+      const width = (result.data as any).imageDims?.width ?? (result.data as any).lines?.[0]?.baseline?.x1 ?? 0;
+      const height = (result.data as any).imageDims?.height ?? 0;
+      return { text: extractedText, words, width, height };
     } catch (error) {
       console.error("❌ Error extracting text from image:", error);
-      return "";
+      return { text: "", words: [], width: 0, height: 0 };
     }
   }
 
   if (file.extractedContent) {
-    return file.extractedContent;
+    return { text: file.extractedContent, words: [], width: 0, height: 0 };
   }
 
-  return "";
+  return { text: "", words: [], width: 0, height: 0 };
 }

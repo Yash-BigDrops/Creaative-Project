@@ -138,3 +138,29 @@ export const submitForm = async (formData: CreativeFormData, creativeUrls: strin
 
   return await response.json();
 }; 
+
+export type ProofreadResult = {
+  corrected: string;
+  edits: Array<{ 
+    start: number; 
+    end: number; 
+    original: string; 
+    suggestion: string; 
+    reason: string; 
+    severity: "minor" | "major" 
+  }>;
+};
+
+export const proofreadText = async (text: string): Promise<ProofreadResult> => {
+  const res = await fetch("/api/proofread", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ text }),
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({} as any));
+    throw new Error(err.error || `Proofread failed (${res.status})`);
+  }
+  return await res.json();
+};

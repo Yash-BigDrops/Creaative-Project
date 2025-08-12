@@ -1,3 +1,5 @@
+require('dotenv').config({ path: '.env.development.local' });
+
 const https = require('https');
 
 const WEBHOOK_URL = 'https://publisher-form-nu.vercel.app/api/telegram-webhook';
@@ -90,7 +92,7 @@ async function testWebhookSimulation() {
 
 // Also test direct message sending
 async function testDirectMessage() {
-  const BOT_TOKEN = '8270513237:AAFDQKccnayiW8CiWyHLtBXjriZ8e7k4QBQ';
+  const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
   
   // You'll need to replace this with a real chat ID
   const testChatId = '123456789'; // Replace with actual chat ID

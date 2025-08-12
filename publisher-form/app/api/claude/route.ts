@@ -32,8 +32,6 @@ export async function POST(request: Request) {
 You are an expert email marketer specializing in high-converting email campaigns.
 
 🎯 CAMPAIGN DETAILS:
-- Company: ${companyName}
-- Offer ID: ${offerId}
 - Creative Type: ${creativeType || "N/A"}
 - Creative File: ${creativeContext} ${indexContext}
 - Request Time: ${currentTimestamp}
@@ -45,6 +43,7 @@ ${creativeContent || "No meaningful content was extracted from the creative. Thi
 """
 
 ⚠️ CRITICAL REQUIREMENTS:
+Imagine that you are a professional copywriter, digital marketer and email marketing expert with an experience of 10+ years. I want you to perform these tasks accordingly one by one without making any errors. Don't make it sound like Artificial intelligence. I want you to write it as a human that would get most conversions. These are the details of the task - 
 1. Generate suggestions that are SPECIFIC to THIS creative's content and style
 2. Avoid generic, one-size-fits-all suggestions
 3. Each suggestion should reflect the unique elements of this creative
