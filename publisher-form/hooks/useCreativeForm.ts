@@ -737,33 +737,40 @@ Avoid any lines that might be similar to previous suggestions.
     
     if (option === "Single Creative") {
       setUploadType("single");
+      // Set navigation context for single creative
+      if (uploadedFiles.length > 0) {
+        setFromSubjectNavigationContext("single");
+      }
     } else if (option === "Multiple Creatives") {
       setUploadType("multiple");
+      // Set navigation context for multiple creatives
+      if (multiCreatives.length > 0) {
+        setFromSubjectNavigationContext("multiple");
+      }
     } else {
       if (option !== "From & Subject Lines") {
         setUploadType(null);
       }
     }
 
-      if (option === "From & Subject Lines") {
-    setFromLine(fromLine || formData.fromLine || "");
-    setSubjectLines(subjectLines || formData.subjectLines || "");
-    
-    if (fromSubjectNavigationContext === null) {
-      const hasActiveUploads = uploadedFiles.length > 0 || multiCreatives.length > 0;
-      const hasActiveUploadType = uploadType === "single" || uploadType === "multiple";
+    if (option === "From & Subject Lines") {
+      setFromLine(fromLine || formData.fromLine || "");
+      setSubjectLines(subjectLines || formData.subjectLines || "");
       
-      
-      if (uploadType === "single" && uploadedFiles.length > 0 && hasActiveUploads) {
-        setFromSubjectNavigationContext("single");
-      } else if (uploadType === "multiple" && multiCreatives.length > 0 && hasActiveUploads) {
-        setFromSubjectNavigationContext("multiple");
-      } else {
-        setFromSubjectNavigationContext("direct");
+      // Preserve the current navigation context if it exists
+      if (fromSubjectNavigationContext === null) {
+        const hasActiveUploads = uploadedFiles.length > 0 || multiCreatives.length > 0;
+        const hasActiveUploadType = uploadType === "single" || uploadType === "multiple";
+        
+        if (uploadType === "single" && uploadedFiles.length > 0 && hasActiveUploads) {
+          setFromSubjectNavigationContext("single");
+        } else if (uploadType === "multiple" && multiCreatives.length > 0 && hasActiveUploads) {
+          setFromSubjectNavigationContext("multiple");
+        } else {
+          setFromSubjectNavigationContext("direct");
+        }
       }
-    } else {
     }
-  }
 
     if (!preserveExisting && option !== "From & Subject Lines") {
       setUploadedFiles([]);
@@ -843,10 +850,11 @@ Avoid any lines that might be similar to previous suggestions.
       setModalOpen(false);
       setSelectedOption("");
       setUploadType(null);
+      // Only reset navigation context when actually closing the modal
+      setFromSubjectNavigationContext(null);
     }
     
     setIsDragOver(false);
-    setFromSubjectNavigationContext(null);
 
     if (selectedOption === "From & Subject Lines" || fromSubjectNavigationContext === "direct") {
       setFormData(prev => ({
@@ -1075,7 +1083,8 @@ Avoid any lines that might be similar to previous suggestions.
     setModalSubjectLines("");
     setPreviewImage(null);
     setPreviewedCreative(null);
-    setFromSubjectNavigationContext(null);
+    // Don't reset navigation context when navigating between modals
+    // Only reset when actually closing the modal
     
   };
 
@@ -1112,7 +1121,8 @@ Avoid any lines that might be similar to previous suggestions.
       setUploadType(null);
     }
 
-    setFromSubjectNavigationContext(null);
+    // Don't reset navigation context when navigating between modals
+    // Only reset when actually closing the modal
   };
 
   return {

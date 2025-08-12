@@ -506,7 +506,7 @@ export default function SingleUploadModal({
     if (setFromSubjectNavigationContext) {
       setFromSubjectNavigationContext(isFromMultiple ? "multiple" : "single");
     }
-    openModal("From &amp; Subject Lines");
+    openModal("From & Subject Lines");
   };
 
   return (
@@ -1063,15 +1063,51 @@ export default function SingleUploadModal({
             </div>
           )}
           
-          <Button
-            type="button"
-            onClick={handleFromSubjectClick}
-            variant="outline"
-            className="flex items-center justify-center gap-2 w-full mb-6"
-          >
-            <Archive className="h-4 w-4 text-gray-600" />
-            <span>From &amp; Subject Lines</span>
-          </Button>
+          <div className="space-y-4 mb-6">
+            <div className="space-y-2">
+              <Label htmlFor="modalFromLine" className="text-lg font-semibold">
+                From Lines
+              </Label>
+              <Textarea
+                id="modalFromLine"
+                placeholder="Enter your from lines here...&#10;Example:&#10;John Doe &lt;john@company.com&gt;&#10;Marketing Team &lt;marketing@company.com&gt;"
+                value={modalFromLine}
+                onChange={(e) => setModalFromLine(e.target.value)}
+                className="min-h-[100px] resize-none transition-all duration-300"
+              />
+              <p className="text-xs text-gray-500">Edit your from lines directly here, or use AI suggestions below.</p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="modalSubjectLines" className="text-lg font-semibold">
+                Subject Lines
+              </Label>
+              <Textarea
+                id="modalSubjectLines"
+                placeholder="Enter your subject lines here...&#10;Example:&#10;Exclusive Offer Inside!&#10;Don't Miss This Limited Time Deal&#10;Your Special Discount Awaits"
+                value={modalSubjectLines}
+                onChange={(e) => setModalSubjectLines(e.target.value)}
+                className="min-h-[100px] resize-none transition-all duration-300"
+              />
+              <p className="text-xs text-gray-500">Edit your subject lines directly here, or use AI suggestions below.</p>
+            </div>
+
+            <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-xs text-blue-700">
+                <strong>💡 Tip:</strong> Your changes are automatically saved when you click "Save & Continue" below.
+              </p>
+            </div>
+
+            <Button
+              type="button"
+              onClick={handleFromSubjectClick}
+              variant="outline"
+              className="flex items-center justify-center gap-2 w-full"
+            >
+              <Archive className="h-4 w-4 text-gray-600" />
+              <span>Get AI Suggestions (Opens Full Editor)</span>
+            </Button>
+          </div>
 
           <div className="space-y-2">
             <Label htmlFor="creativeNotes" className="text-lg font-semibold">
