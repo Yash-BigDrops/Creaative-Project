@@ -1,11 +1,9 @@
+import CreativeForm from "@/app/Form/CreativeForm";
 
-
-import CreativeForm from "@/components/CreativeForm";
-
-export default function HomePage() {
+export default function Home() {
   return (
-    <main>
-      <CreativeForm />
-    </main>
+   <main>
+    <CreativeForm />
+   </main>
   );
 }

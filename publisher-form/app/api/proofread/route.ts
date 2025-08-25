@@ -1,76 +1,28 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse } from 'next/server';
+
+type Edit = { start: number; end: number; original: string; suggestion: string; reason: string; severity: 'minor'|'major' };
+
+const RULES: Array<[RegExp, (m: RegExpExecArray) => string, string]> = [
+  [/\bteh\b/gi, ()=>'the', 'common typo'],
+  [/\bdont\b/gi, ()=>"don't", 'apostrophe'],
+  [/\boccured\b/gi, ()=>'occurred', 'spelling'],
+  [/\bseperate\b/gi, ()=>'separate', 'spelling'],
+];
 
 export async function POST(req: NextRequest) {
-  try {
-    // Debug logging
-    console.log("Proofread API called");
-    console.log("API Key exists:", !!process.env.OPENAI_API_KEY);
-    console.log("API Key length:", process.env.OPENAI_API_KEY?.length || 0);
-    
-    const { text } = await req.json();
-    console.log("Text received length:", text?.length || 0);
+  const { text } = await req.json();
+  if (typeof text !== 'string') return NextResponse.json({ error: 'text required' }, { status: 400 });
 
-    if (!text || !text.trim()) {
-      return NextResponse.json({ error: "No text to proofread." }, { status: 400 });
+  const edits: Edit[] = [];
+  for (const [re, fix, reason] of RULES) {
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(text))) {
+      const original = m[0];
+      const suggestion = fix(m);
+      const start = m.index;
+      const end = m.index + m[0].length;
+      edits.push({ start, end, original, suggestion, reason, severity: 'minor' });
     }
-
-    const prompt = `
-You are a professional copy editor with an experience of 10+ years. Review the text for:
-- spelling
-- grammar (subject–verb agreement, tense, punctuation)
-- clarity/conciseness (light)
-Return ONLY JSON:
-{
-  "corrected": "full corrected version",
-  "edits": [
-    {
-      "start": <number>,    
-      "end": <number>,      
-      "original": "…",
-      "suggestion": "…",
-      "reason": "…",        
-      "severity": "minor" | "major"
-    }
-  ]
-}
-Text:
-"""${text}"""`;
-
-    const res = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "gpt-4o-mini",
-        temperature: 0.1,
-        response_format: { type: "json_object" },
-        messages: [
-          { role: "system", content: "Return strict JSON only." },
-          { role: "user", content: prompt },
-        ],
-      }),
-    });
-
-    if (!res.ok) {
-      const err = await res.text();
-      return NextResponse.json({ error: `OpenAI error: ${err}` }, { status: 500 });
-    }
-
-    const data = await res.json();
-    const content = data.choices?.[0]?.message?.content ?? "{}";
-    let parsed;
-    try {
-      parsed = JSON.parse(content);
-    } catch {
-      parsed = { corrected: "", edits: [] };
-    }
-
-    return NextResponse.json(parsed);
-  } catch (e: unknown) {
-    return NextResponse.json({ error: e instanceof Error ? e.message : "Unknown error" }, { status: 500 });
   }
+  return NextResponse.json({ corrected: text, edits });
 }
-
-

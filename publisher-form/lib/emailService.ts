@@ -1,90 +1,39 @@
 import * as nodemailer from 'nodemailer';
 
-const emailConfig = {
-  host: process.env.SMTP_HOST || 'smtp.gmail.com',
-  port: parseInt(process.env.SMTP_PORT || '587'),
-  secure: false,
-  auth: {
-    user: process.env.SMTP_USER || 'your-email@gmail.com',
-    pass: process.env.SMTP_PASS || 'your-app-password',
-  },
-};
+let transporter: nodemailer.Transporter | null = null;
 
-const transporter = nodemailer.createTransport(emailConfig);
-
-export const createSubmissionEmail = (data: {
-  contactName: string;
-  priority: string;
-  trackingLink: string;
-}) => {
-  return `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="utf-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Submission Confirmation</title>
-      <style>
-        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-        .header { background: #3b82f6; color: white; padding: 20px; text-align: center; }
-        .content { padding: 20px; background: #f9fafb; }
-        .tracking-link { background: #e0e7ff; padding: 15px; border-radius: 8px; margin: 20px 0; }
-        .footer { text-align: center; padding: 20px; color: #6b7280; font-size: 14px; }
-      </style>
-    </head>
-    <body>
-      <div class="container">
-        <div class="header">
-          <h1>Submission Confirmed!</h1>
-        </div>
-        <div class="content">
-          <p>Hello ${data.contactName},</p>
-          <p>Thank you for your submission! We have received your creative and it is now being processed.</p>
-          <p><strong>Priority Level:</strong> ${data.priority}</p>
-          <div class="tracking-link">
-            <strong>Your Tracking Link:</strong><br>
-            <a href="${data.trackingLink}" style="color: #3b82f6;">${data.trackingLink}</a>
-          </div>
-          <p>You can use this link to track the status of your submission.</p>
-          <p>If you have any questions, please don't hesitate to contact us.</p>
-          <p>Best regards,<br>Big Drops Marketing Team</p>
-        </div>
-        <div class="footer">
-          <p>This is an automated message. Please do not reply to this email.</p>
-        </div>
-      </div>
-    </body>
-    </html>
-  `;
-};
-
-export const sendEmail = async (options: {
-  to: string;
-  subject: string;
-  html: string;
-}) => {
-  try {
-    const mailOptions = {
-      from: `"Big Drops Marketing" <${process.env.SMTP_USER}>`,
-      to: options.to,
-      subject: options.subject,
-      html: options.html,
-    };
-
-    const info = await transporter.sendMail(mailOptions);
-    return { success: true, messageId: info.messageId };
-  } catch (error) {
-    console.error('Email sending failed:', error);
-    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+function getTransporter() {
+  if (!transporter) {
+    if (!process.env.SMTP_HOST || !process.env.SMTP_PORT || !process.env.SMTP_USER || !process.env.SMTP_PASS) {
+      throw new Error('SMTP env vars missing (SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS)');
+    }
+    
+    transporter = nodemailer.createTransport({
+      host: process.env.SMTP_HOST,
+      port: parseInt(process.env.SMTP_PORT as string, 10),
+      secure: false,
+      auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+    });
   }
-};
+  return transporter;
+}
 
-export const verifySMTPConnection = async () => {
-  try {
-    await transporter.verify();
-    return true;
-  } catch (error) {
-    return false;
-  }
-}; 
+export const createSubmissionEmail = (data: { contactName: string; priority: string; trackingLink: string; }) => `
+<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>
+body{font-family:Arial,sans-serif;line-height:1.6;color:#333}.container{max-width:600px;margin:0 auto;padding:20px}.header{background:#3b82f6;color:#fff;padding:20px;text-align:center}.content{padding:20px;background:#f9fafb}.tracking-link{background:#e0e7ff;padding:15px;border-radius:8px;margin:20px 0}.footer{text-align:center;padding:20px;color:#6b7280;font-size:14px}
+</style></head><body><div class="container"><div class="header"><h1>Submission Confirmed!</h1></div><div class="content">
+<p>Hello ${data.contactName},</p><p>Thank you for your submission! We have received your creative.</p>
+<p><strong>Priority:</strong> ${data.priority}</p>
+<div class="tracking-link"><strong>Your Tracking Link:</strong><br><a href="${data.trackingLink}" style="color:#3b82f6">${data.trackingLink}</a></div>
+<p>You can use this link to track your submission.</p><p>Best,<br>Big Drops Marketing Team</p></div>
+<div class="footer"><p>This is an automated message. Please do not reply.</p></div></div></body></html>
+`;
+
+export async function sendEmail(opts: { to: string; subject: string; html: string }) {
+  const emailTransporter = getTransporter();
+  const info = await emailTransporter.sendMail({
+    from: `"Big Drops Marketing" <${process.env.SMTP_USER}>`,
+    to: opts.to, subject: opts.subject, html: opts.html
+  });
+  return { success: true, messageId: info.messageId };
+}
